@@ -4759,6 +4759,12 @@ if (typeof jQuery != 'undefined') {
 
 				playbackSpeed = t.options.defaultSpeed;
 
+				media.addEventListener('loadedmetadata', function(e) {
+					if (playbackSpeed) {
+						media.playbackRate = parseFloat(playbackSpeed);
+					}
+				}, true);
+
 				speedSelector
 					.on('click', 'input[type="radio"]', function() {
 						var newSpeed = $(this).attr('value');

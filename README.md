@@ -118,3 +118,15 @@ To compile the changes
 2. At the command prompt type `npm install` which will download all the necessary tools
 3. Type `grunt` to build MediaElement.js
 4. To compile the Flash swf, you'll need to install Flex 4.6. See instructions in grunt.js for details.
+
+## Contributing to Instructure's fork
+
+To make changes:
+
+1. Create a new branch
+2. Edit relevant files within `src/`
+3. Push your branch up for review
+4. Once your branch is reviewed, submit a PR upstream to [johndyer/mediaelement](https://github.com/johndyer/mediaelement) and merge your branch to `master`. 
+5. On `master`, re-build mediaelement (see above) and bump the version number.
+
+Note: In this fork, `grunt` only re-builds the html5 assets by default. To re-build the flash player, run `grunt withflash`

@@ -4253,7 +4253,7 @@ if (typeof jQuery != 'undefined') {
 			player.isInIframe = (window.location != window.parent.location);	
 		
 			// detect on start
-			media.addEventListener('play', function() { player.detectFullscreenMode(); });
+			media.addEventListener('canplay', function() { player.detectFullscreenMode(); });
 				
 			// build button
 			var t = this,
@@ -4543,62 +4543,15 @@ if (typeof jQuery != 'undefined') {
 			}
 
 			// set it to not show scroll bars so 100% will work
-            $(document.documentElement).addClass('mejs-fullscreen');
+      $(document.documentElement).addClass('mejs-fullscreen');
 
 			// store sizing
 			t.normalHeight = t.container.height();
 			t.normalWidth = t.container.width();
 
-
-
 			// attempt to do true fullscreen
 			if (t.fullscreenMode === 'native-native' || t.fullscreenMode === 'plugin-native') {
-
 				mejs.MediaFeatures.requestFullScreen(t.container[0]);
-				//return;
-
-				if (t.isInIframe) {
-					// sometimes exiting from fullscreen doesn't work
-					// notably in Chrome <iframe>. Fixed in version 17
-					setTimeout(function checkFullscreen() {
-
-						if (t.isNativeFullScreen) {
-							var zoomMultiplier = window["devicePixelRatio"] || 1,
-							// Use a percent error margin since devicePixelRatio is a float and not exact.
-								percentErrorMargin = 0.002, // 0.2%
-								windowWidth = zoomMultiplier * $(window).width(),
-								screenWidth = screen.width,
-								// ** 13twelve
-								// Screen width is sort of useless: http://www.quirksmode.org/blog/archives/2013/11/screenwidth_is.html
-								// My rMBP ignores devicePixelRatio when returning the values, so fullscreen would always fail the "suddenly not fullscreen" test
-								// Theory: the gap between reported values should give us an indication of browser behavior with screen.width and devicePixelRatio
-								zoomedWindowWidth = zoomMultiplier * windowWidth;
-								
-							if (Math.abs(screenWidth-windowWidth) > Math.abs(screenWidth-zoomedWindowWidth)) {
-								// screen.width is likely true pixels, not CSS pixels, so we need to use the zoomed window width for comparison
-								windowWidth = zoomedWindowWidth;
-							}
-							// ** / 13twelve
-
-							var absDiff = Math.abs(screenWidth - windowWidth),
-								marginError = screenWidth * percentErrorMargin;
-
-							// check if the video is suddenly not really fullscreen
-							if (absDiff > marginError) {
-								// manually exit
-								t.exitFullScreen();
-							} else {
-								// test again
-								setTimeout(checkFullscreen, 500);
-							}
-						}
-						
-					}, 1000);
-				}
-				
-			} else if (t.fullscreeMode == 'fullwindow') {				
-				// move into position
-				
 			}			
 			
 			// make full size

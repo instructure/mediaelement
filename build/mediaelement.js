@@ -1698,6 +1698,20 @@ mejs.HtmlMediaElementShim = {
  - determine when to use iframe (Firefox, Safari, Mobile) vs. Flash (Chrome, IE)
  - fullscreen?
 */
+function createToggleTimeupdate() {
+	var intervalId = null;
+
+	return function(player, pluginMediaElement, shouldBeOn) {
+		if (!intervalId && shouldBeOn) {
+			intervalId = setInterval(function() {
+				mejs.YouTubeApi.createEvent(player, pluginMediaElement, 'timeupdate');
+			}, 250);
+		} else if (intervalId && !shouldBeOn) {
+			clearInterval(intervalId);
+			intervalId = null;
+		}
+	};
+}
 
 // YouTube Flash and Iframe API
 mejs.YouTubeApi = {
@@ -1747,11 +1761,16 @@ mejs.YouTubeApi = {
 					pluginMediaElement.success(pluginMediaElement, pluginMediaElement.pluginElement);
 
 					mejs.YouTubeApi.createEvent(player, pluginMediaElement, 'canplay');
-					
-					// create timer
-					setInterval(function() {
-						mejs.YouTubeApi.createEvent(player, pluginMediaElement, 'timeupdate');
-					}, 250);
+
+					var originalSeekTo = settings.pluginMediaElement.pluginApi.seekTo.bind(player);
+
+					settings.pluginMediaElement.pluginApi.seekTo = function(seconds, allowSeekAhead) {
+						originalSeekTo(seconds, allowSeekAhead);
+						// Allow player to update before triggering timeupdate event
+						setTimeout(function() {
+							mejs.YouTubeApi.createEvent(player, pluginMediaElement, 'timeupdate');
+						}, 100);
+					}
 
 					if (typeof pluginMediaElement.attributes.autoplay !== 'undefined') {
 						player.playVideo();
@@ -1882,42 +1901,43 @@ mejs.YouTubeApi = {
 		}
 		
 		player.addEventListener('onStateChange', callbackName);
-		
-		setInterval(function() {
-			mejs.YouTubeApi.createEvent(player, pluginMediaElement, 'timeupdate');
-		}, 250);
-		
+
 		mejs.YouTubeApi.createEvent(player, pluginMediaElement, 'canplay');
 	},
 	
+
+	toggleTimeupdates: createToggleTimeupdate(),
+
 	handleStateChange: function(youTubeState, player, pluginMediaElement) {
 		switch (youTubeState) {
-			case -1: // not started
+			case YT.PlayerState.UNSTARTED:
 				pluginMediaElement.paused = true;
 				pluginMediaElement.ended = true;
 				mejs.YouTubeApi.createEvent(player, pluginMediaElement, 'loadedmetadata');
-				//createYouTubeEvent(player, pluginMediaElement, 'loadeddata');
 				break;
-			case 0:
+			case YT.PlayerState.ENDED:
 				pluginMediaElement.paused = false;
 				pluginMediaElement.ended = true;
 				mejs.YouTubeApi.createEvent(player, pluginMediaElement, 'ended');
+				mejs.YouTubeApi.toggleTimeupdates(player, pluginMediaElement, false);
 				break;
-			case 1:
+			case YT.PlayerState.PLAYING:
 				pluginMediaElement.paused = false;
 				pluginMediaElement.ended = false;				
 				mejs.YouTubeApi.createEvent(player, pluginMediaElement, 'play');
 				mejs.YouTubeApi.createEvent(player, pluginMediaElement, 'playing');
+				mejs.YouTubeApi.toggleTimeupdates(player, pluginMediaElement, true);
 				break;
-			case 2:
+			case YT.PlayerState.PAUSED:
 				pluginMediaElement.paused = true;
 				pluginMediaElement.ended = false;				
 				mejs.YouTubeApi.createEvent(player, pluginMediaElement, 'pause');
+				mejs.YouTubeApi.toggleTimeupdates(player, pluginMediaElement, false);
 				break;
-			case 3: // buffering
+			case YT.PlayerState.BUFFERING:
 				mejs.YouTubeApi.createEvent(player, pluginMediaElement, 'progress');
 				break;
-			case 5:
+			case YT.PlayerState.CUED:
 				// cued?
 				break;						
 			

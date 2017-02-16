@@ -1012,6 +1012,7 @@ mejs.YouTubeApi = {
 				pluginMediaElement.paused = true;
 				pluginMediaElement.ended = true;
 				mejs.YouTubeApi.createEvent(player, pluginMediaElement, 'loadedmetadata');
+				mejs.YouTubeApi.toggleTimeupdates(player, pluginMediaElement, false);
 				break;
 			case YT.PlayerState.ENDED:
 				pluginMediaElement.paused = false;

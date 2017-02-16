@@ -761,7 +761,7 @@ function isAfter(sourceNode, targetNode) {
 
 						}
 					}
-					t.media.pause();
+					t.media.stop();
 
 					if (t.setProgressRail) {
 						t.setProgressRail();

@@ -1924,6 +1924,7 @@ mejs.YouTubeApi = {
 				pluginMediaElement.paused = true;
 				pluginMediaElement.ended = true;
 				mejs.YouTubeApi.createEvent(player, pluginMediaElement, 'loadedmetadata');
+				mejs.YouTubeApi.createEvent(player, pluginMediaElement, 'unstarted');
 				mejs.YouTubeApi.toggleTimeupdates(player, pluginMediaElement, false);
 				break;
 			case YT.PlayerState.ENDED:
@@ -3795,6 +3796,9 @@ function isAfter(sourceNode, targetNode) {
 				togglePlayPause('pse');
 			}, false);
 			media.addEventListener('paused',function() {
+				togglePlayPause('pse');
+			}, false);
+			media.addEventListener('unstarted',function() {
 				togglePlayPause('pse');
 			}, false);
 		}

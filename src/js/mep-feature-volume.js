@@ -141,9 +141,6 @@
 				volume = Math.max(0,volume);
 				volume = Math.min(volume,1);
 				
-				// position the slider and handle
-				positionVolumeHandle(volume);
-				
 				// set the media object (this will trigger the volumechanged event)
 				if (volume === 0) {
 					media.setMuted(true);
@@ -151,6 +148,9 @@
 					media.setMuted(false);
 				}
 				media.setVolume(volume);
+
+				// position the slider and handle
+				positionVolumeHandle(volume);
 			},
 			mouseIsDown = false,
 			mouseIsOver = false;

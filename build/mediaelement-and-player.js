@@ -963,6 +963,8 @@ mejs.MediaElementDefaults = {
 	// custom error message in case media cannot be played; otherwise, Download File
 	// link will be displayed
 	customError: "",
+	//youtube player parameters, see https://developers.google.com/youtube/player_parameters
+	youtubePlayerVars: { controls: 0 },
 	success: function () { },
 	error: function () { }
 };
@@ -1534,7 +1536,8 @@ mejs.HtmlMediaElementShim = {
 						videoId: videoId,
 						height: height,
 						width: width,
-                        scheme: playback.scheme
+						scheme: playback.scheme,
+						playerVars: options.youtubePlayerVars,
 					};				
 				
 				// favor iframe version of YouTube
@@ -1753,7 +1756,7 @@ mejs.YouTubeApi = {
 			height: settings.height,
 			width: settings.width,
 			videoId: settings.videoId,
-			playerVars: {controls:0, wmode:'transparent'},
+			playerVars: settings.playerVars,
 			events: {
 				'onReady': function(e) {
 					

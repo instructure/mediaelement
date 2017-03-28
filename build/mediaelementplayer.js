@@ -41,6 +41,17 @@ function isAfter(sourceNode, targetNode) {
 	);
 }
 
+function constrainedSeekTo(player, media, targetTime) {
+	if (!isNaN(media.duration) && media.duration > 0) {
+		if (player.isVideo) {
+			player.showControls();
+			player.startControlsTimer();
+		}
+		var newTime = Math.min(Math.max(0, targetTime), media.duration);
+		media.setCurrentTime(newTime);
+	}
+}
+
 (function ($) {
 
 	// default player values
@@ -195,16 +206,8 @@ function isAfter(sourceNode, targetNode) {
 								227 // Google TV rewind
 						],
 						action: function(player, media) {
-								if (!isNaN(media.duration) && media.duration > 0) {
-										if (player.isVideo) {
-												player.showControls();
-												player.startControlsTimer();
-										}
-
-										// 5%
-										var newTime = Math.max(media.currentTime - player.options.defaultSeekBackwardInterval(media), 0);
-										media.setCurrentTime(newTime);
-								}
+							var newTime = media.currentTime - player.options.defaultSeekBackwardInterval(media);
+							constrainedSeekTo(player, media, newTime);
 						}
 				},
 				{
@@ -213,16 +216,26 @@ function isAfter(sourceNode, targetNode) {
 								228 // Google TV forward
 						],
 						action: function(player, media) {
-								if (!isNaN(media.duration) && media.duration > 0) {
-										if (player.isVideo) {
-												player.showControls();
-												player.startControlsTimer();
-										}
-
-										// 5%
-										var newTime = Math.min(media.currentTime + player.options.defaultSeekForwardInterval(media), media.duration);
-										media.setCurrentTime(newTime);
-								}
+							var newTime = media.currentTime + player.options.defaultSeekForwardInterval(media);
+							constrainedSeekTo(player, media, newTime);
+						}
+				},
+				{
+						keys: [
+								33, // PAGE UP
+						],
+						action: function(player, media) {
+							var newTime = media.currentTime + player.options.defaultJumpBackwardInterval(media);
+							constrainedSeekTo(player, media, newTime);
+						}
+				},
+				{
+						keys: [
+								34, // PAGE DOWN
+						],
+						action: function(player, media) {
+							var newTime = media.currentTime + player.options.defaultJumpForwardInterval(media);
+							constrainedSeekTo(player, media, newTime);
 						}
 				},
 				{
@@ -1844,6 +1857,8 @@ function isAfter(sourceNode, targetNode) {
 					seekTime = media.currentTime,
 					seekForward  = player.options.defaultSeekForwardInterval(media),
 					seekBackward = player.options.defaultSeekBackwardInterval(media);
+					jumpForward  = player.options.defaultJumpForwardInterval(media),
+					jumpBackward = player.options.defaultJumpBackwardInterval(media);
 
 				switch (keyCode) {
 					case 37: // left
@@ -1853,6 +1868,12 @@ function isAfter(sourceNode, targetNode) {
 					case 39: // Right
 					case 38: // Up
 						seekTime += seekForward;
+						break;
+					case 33: // Page Up
+						seekTime += jumpForward;
+						break;
+					case 34: // Page Down
+						seekTime -= jumpBackward;
 						break;
 					case 36: // Home
 						seekTime = 0;

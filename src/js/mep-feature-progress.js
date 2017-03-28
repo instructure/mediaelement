@@ -131,6 +131,8 @@
 					seekTime = media.currentTime,
 					seekForward  = player.options.defaultSeekForwardInterval(media),
 					seekBackward = player.options.defaultSeekBackwardInterval(media);
+					jumpForward  = player.options.defaultJumpForwardInterval(media),
+					jumpBackward = player.options.defaultJumpBackwardInterval(media);
 
 				switch (keyCode) {
 					case 37: // left
@@ -140,6 +142,12 @@
 					case 39: // Right
 					case 38: // Up
 						seekTime += seekForward;
+						break;
+					case 33: // Page Up
+						seekTime += jumpForward;
+						break;
+					case 34: // Page Down
+						seekTime -= jumpBackward;
 						break;
 					case 36: // Home
 						seekTime = 0;

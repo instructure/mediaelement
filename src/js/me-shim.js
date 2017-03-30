@@ -860,6 +860,7 @@ mejs.YouTubeApi = {
 					// init mejs
 					pluginMediaElement.success(pluginMediaElement, pluginMediaElement.pluginElement);
 
+					mejs.YouTubeApi.createEvent(player, pluginMediaElement, 'loadstart');
 					mejs.YouTubeApi.createEvent(player, pluginMediaElement, 'canplay');
 
 					var originalSeekTo = settings.pluginMediaElement.pluginApi.seekTo.bind(player);
@@ -1003,6 +1004,7 @@ mejs.YouTubeApi = {
 		
 		player.addEventListener('onStateChange', callbackName);
 
+		mejs.YouTubeApi.createEvent(player, pluginMediaElement, 'loadstart');
 		mejs.YouTubeApi.createEvent(player, pluginMediaElement, 'canplay');
 	},
 	

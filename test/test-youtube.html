@@ -218,29 +218,11 @@ jQuery(document).ready(function() {
 		//features: ['playpause','progress','volume','speed','fullscreen'],
 		success: function(me,node) {
 			// report type
-			var tagName = node.tagName.toLowerCase();
-			$('#' + tagName + '-mode').html( me.pluginType  + ': success' + ', touch: ' + mejs.MediaFeatures.hasTouch);
+			$('#video-mode').html( me.pluginType  + ': success' + ', touch: ' + mejs.MediaFeatures.hasTouch);
 
-			
-			if (tagName == 'audio') {
-
-				me.addEventListener('progress',function(e) {
-					//console.log(e);
-				}, false);
-			
-			}
-			
-			me.addEventListener('progress',function(e) {
-				//console.log(e);
-			}, false);
-	
-			
 			// add events
-			if (tagName == 'video' && node.id == 'player1') {
-				appendMediaProperties($('#' + tagName + '-props'), me);
-				appendMediaEvents($('#' + tagName + '-events'), me);
-				
-			}
+			appendMediaProperties($('#video-props'), me);
+			appendMediaEvents($('#video-events'), me);
 		}		
 	});
 	

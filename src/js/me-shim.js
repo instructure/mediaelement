@@ -863,6 +863,7 @@ mejs.YouTubeApi = {
 
 					mejs.YouTubeApi.createEvent(player, pluginMediaElement, 'loadstart');
 					mejs.YouTubeApi.createEvent(player, pluginMediaElement, 'canplay');
+					mejs.YouTubeApi.createEvent(player, pluginMediaElement, 'loadedmetadata');
 
 					var originalSeekTo = settings.pluginMediaElement.pluginApi.seekTo.bind(player);
 
@@ -1022,7 +1023,6 @@ mejs.YouTubeApi = {
 			case YT.PlayerState.UNSTARTED:
 				pluginMediaElement.paused = true;
 				pluginMediaElement.ended = true;
-				mejs.YouTubeApi.createEvent(player, pluginMediaElement, 'loadedmetadata');
 				mejs.YouTubeApi.createEvent(player, pluginMediaElement, 'unstarted');
 				mejs.YouTubeApi.toggleTimeupdates(player, pluginMediaElement, false);
 				break;

@@ -1789,6 +1789,7 @@ mejs.YouTubeApi = {
 
 					mejs.YouTubeApi.createEvent(player, pluginMediaElement, 'loadstart');
 					mejs.YouTubeApi.createEvent(player, pluginMediaElement, 'canplay');
+					mejs.YouTubeApi.createEvent(player, pluginMediaElement, 'loadedmetadata');
 
 					var originalSeekTo = settings.pluginMediaElement.pluginApi.seekTo.bind(player);
 
@@ -1948,7 +1949,6 @@ mejs.YouTubeApi = {
 			case YT.PlayerState.UNSTARTED:
 				pluginMediaElement.paused = true;
 				pluginMediaElement.ended = true;
-				mejs.YouTubeApi.createEvent(player, pluginMediaElement, 'loadedmetadata');
 				mejs.YouTubeApi.createEvent(player, pluginMediaElement, 'unstarted');
 				mejs.YouTubeApi.toggleTimeupdates(player, pluginMediaElement, false);
 				break;
@@ -2406,6 +2406,81 @@ window.MediaElement = mejs.MediaElement;
 	}
 
 }(mejs.i18n.locale.strings));
+/*!
+ * This is a i18n.locale language object.
+ *
+ * English; This can serve as a template for other languages to translate
+ *
+ * @author
+ *   TBD
+ *   Sascha Greuel (Twitter: @SoftCreatR)
+ *
+ * @see
+ *   me-i18n.js
+ *
+ * @params
+ *  - exports - CommonJS, window ..
+ */
+(function (exports) {
+    "use strict";
+
+    if (exports.en === undefined) {
+        exports.en = {
+            "mejs.plural-form": 1,
+
+            // me-shim
+            "mejs.download-file": "Download File",
+
+            // mep-feature-contextmenu
+            "mejs.fullscreen-off": "Turn off Fullscreen",
+            "mejs.fullscreen-on": "Go Fullscreen",
+            "mejs.download-video": "Download Video",
+
+            // mep-feature-fullscreen
+            "mejs.fullscreen": "Fullscreen",
+
+            // mep-feature-jumpforward
+            "mejs.time-jump-forward": ["Jump forward 1 second", "Jump forward %1 seconds"],
+
+            // mep-feature-playpause
+            "mejs.play": "Play",
+            "mejs.pause": "Pause",
+
+            // mep-feature-postroll
+            "mejs.close": "Close",
+
+            // mep-feature-progress
+            "mejs.time-slider": "Time Slider",
+            "mejs.time-help-text": "Use Left/Right Arrow keys to advance one second, Up/Down arrows to advance ten seconds.",
+
+            // mep-feature-skipback
+            "mejs.time-skip-back": ["Skip back 1 second", "Skip back %1 seconds"],
+
+            // mep-feature-tracks
+            "mejs.captions-subtitles": "Captions/Subtitles",
+            "mejs.none": "None",
+
+            // mep-feature-volume
+            "mejs.mute-toggle": "Mute Toggle",
+            "mejs.volume-help-text": "Use Up/Down Arrow keys to increase or decrease volume.",
+            "mejs.unmute": "Unmute",
+            "mejs.mute": "Mute",
+            "mejs.volume-slider": "Volume Slider",
+
+            // mep-player
+            "mejs.video-player": "Video Player",
+            "mejs.audio-player": "Audio Player",
+
+            // mep-feature-ads
+            "mejs.ad-skip": "Skip ad",
+            "mejs.ad-skip-info": ["Skip in 1 second", "Skip in %1 seconds"],
+
+            // mep-feature-sourcechooser
+            "mejs.source-chooser": "Source Chooser"
+        };
+    }
+}(mejs.i18n.locale.strings));
+
 /*!
  *
  * MediaElementPlayer
@@ -6710,4 +6785,78 @@ $.extend(mejs.MepDefaults,
 		}
 	});
 
+})(mejs.$);
+/*
+MediaElement-Markers is a MediaElement.js plugin that lets you add Visual Cues in the progress time rail. 
+This plugin also lets you register a custom callback function that will be called everytime the play position reaches a marker. 
+Marker position and a reference to the MediaElement Player object is passed to the registered callback function for any post processing. Marker color is configurable.
+
+*/
+
+(function ($) {
+    // markers
+
+    $.extend(mejs.MepDefaults, {
+        markerColor: '#E9BC3D', //default marker color
+        markers: [],
+        markerCallback: function () {
+
+        }
+    });
+
+    $.extend(MediaElementPlayer.prototype, {
+        buildmarkers: function (player, controls, layers, media) {
+            var t = this,
+                i = 0,
+                currentPos = -1,
+                currentMarker = -1,
+                lastPlayPos = -1, //Track backward seek
+                lastMarkerCallBack = -1; //Prevents successive firing of callbacks
+
+            for (i = 0; i < player.options.markers.length; ++i) {
+                controls.find('.mejs-time-total').append('<span class="mejs-time-marker"></span>');
+            }
+
+            media.addEventListener('durationchange', function (e) {
+                player.setmarkers(controls);
+            });
+            media.addEventListener('timeupdate', function (e) {
+                currentPos = Math.floor(media.currentTime);
+                if (lastPlayPos > currentPos) {
+                    if (lastMarkerCallBack > currentPos) {
+                        lastMarkerCallBack = -1;
+                    }
+                } else {
+                    lastPlayPos = currentPos;
+                }
+
+                for (i = 0; i < player.options.markers.length; ++i) {
+                    currentMarker = Math.floor(player.options.markers[i]); 
+                    if (currentPos === currentMarker && currentMarker !== lastMarkerCallBack) {
+                        player.options.markerCallback(media, media.currentTime); //Fires the callback function
+                        lastMarkerCallBack = currentMarker;
+                    }
+                }
+
+            }, false);
+
+        },
+        setmarkers: function (controls) {
+            var t = this,
+                i = 0,
+                left;
+
+            for (i = 0; i < t.options.markers.length; ++i) {
+                if (Math.floor(t.options.markers[i]) <= t.media.duration && Math.floor(t.options.markers[i]) >= 0) {
+                    left = 100 * Math.floor(t.options.markers[i]) / t.media.duration;
+                    $(controls.find('.mejs-time-marker')[i]).css({
+                        "width": "1px",
+                        "left": left+"%",
+                        "background": t.options.markerColor
+                    });
+                }
+            }
+
+        }
+    });
 })(mejs.$);

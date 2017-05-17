@@ -1805,6 +1805,14 @@ mejs.YouTubeApi = {
 					if (typeof pluginMediaElement.attributes.autoplay !== 'undefined') {
 						player.playVideo();
 					}
+
+					var _setVolume = player.setVolume.bind(player);
+					player.setVolume = function setVolume(volume) {
+						_setVolume(volume);
+						setTimeout(function() {
+							mejs.YouTubeApi.createEvent(player, pluginMediaElement, 'volumechange');
+						}, 100);
+					}
 				},
 				'onStateChange': function(e) {
 					

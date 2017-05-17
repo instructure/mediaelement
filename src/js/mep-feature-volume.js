@@ -16,6 +16,15 @@
 			if ((mejs.MediaFeatures.isAndroid || mejs.MediaFeatures.isiOS) && this.options.hideVolumeOnTouchDevices)
 				return;
 
+			// prefer `getVolume` accessor to `volume` property
+			function getVolume() {
+				if (typeof media.getVolume === 'function') {
+					return media.getVolume();
+				} else {
+					return media.volume;
+				}
+			}
+
 			var t = this,
 				mode = (t.isVideo) ? t.options.videoVolume : t.options.audioVolume,
 				mute = (mode == 'horizontal') ?
@@ -171,7 +180,7 @@
 
 			var updateVolumeSlider = function (e) {
 
-				var volume = Math.floor(media.volume * 100);
+				var volume = Math.floor(getVolume(media) * 100);
 
 				volumeSlider.attr({
 					'aria-label': mejs.i18n.t('mejs.volume-slider'),
@@ -208,7 +217,7 @@
 			})
 			.bind('keydown', function (e) {
 				var keyCode = e.keyCode;
-				var volume = media.volume;
+				var volume = getVolume();
 				switch (keyCode) {
 					case 38: // Up
 						volume = Math.min(volume + 0.1, 1);
@@ -243,7 +252,7 @@
 						positionVolumeHandle(0);
 						mute.removeClass('mejs-mute').addClass('mejs-unmute');
 					} else {
-						positionVolumeHandle(media.volume);
+						positionVolumeHandle(getVolume());
 						mute.removeClass('mejs-unmute').addClass('mejs-mute');
 					}
 				}
@@ -265,7 +274,7 @@
 					positionVolumeHandle(0);
 					mute.removeClass('mejs-mute').addClass('mejs-unmute');
 				} else {
-					positionVolumeHandle(media.volume);
+					positionVolumeHandle(getVolume());
 					mute.removeClass('mejs-unmute').addClass('mejs-mute');
 				}
 			});

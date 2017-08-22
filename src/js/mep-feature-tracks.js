@@ -254,7 +254,7 @@
 				.attr('tabindex', '0');
 		},
 
-		setAriaLabel: function() {
+		setTrackAriaLabel: function() {
 			var label = this.options.tracksText
 			var current = this.selectedTrack
 
@@ -290,7 +290,7 @@
 				}
 			}
 
-			t.setAriaLabel();
+			t.setTrackAriaLabel();
 		},
 
 		loadNextTrack: function() {

@@ -103,7 +103,7 @@
 							media.load();
 						}
 
-						t.setAriaLabel(media);
+						t.setSourcechooserAriaLabel(media);
 					})
 
 					// Handle click so that screen readers can toggle the menu
@@ -125,10 +125,10 @@
 				}
 			}
 
-			t.setAriaLabel(media);
+			t.setSourcechooserAriaLabel(media);
 		},
 
-		setAriaLabel: function(media) {
+		setSourcechooserAriaLabel: function(media) {
 			var label = this.options.sourcechooserText ? this.options.sourcechooserText : mejs.i18n.t('mejs.source-chooser');
 			var current = this.currentSource(media);
 

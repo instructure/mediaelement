@@ -3432,7 +3432,7 @@ function constrainedSeekTo(player, media, targetTime) {
 				.attr('tabindex', '0');
 		},
 
-		setAriaLabel: function() {
+		setTrackAriaLabel: function() {
 			var label = this.options.tracksText
 			var current = this.selectedTrack
 
@@ -3468,7 +3468,7 @@ function constrainedSeekTo(player, media, targetTime) {
 				}
 			}
 
-			t.setAriaLabel();
+			t.setTrackAriaLabel();
 		},
 
 		loadNextTrack: function() {
@@ -4115,7 +4115,7 @@ function constrainedSeekTo(player, media, targetTime) {
 							media.load();
 						}
 
-						t.setAriaLabel(media);
+						t.setSourcechooserAriaLabel(media);
 					})
 
 					// Handle click so that screen readers can toggle the menu
@@ -4137,10 +4137,10 @@ function constrainedSeekTo(player, media, targetTime) {
 				}
 			}
 
-			t.setAriaLabel(media);
+			t.setSourcechooserAriaLabel(media);
 		},
 
-		setAriaLabel: function(media) {
+		setSourcechooserAriaLabel: function(media) {
 			var label = this.options.sourcechooserText ? this.options.sourcechooserText : mejs.i18n.t('mejs.source-chooser');
 			var current = this.currentSource(media);
 

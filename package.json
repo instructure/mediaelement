@@ -8,6 +8,7 @@
     "url": "https://github.com/johndyer/mediaelement.git"
   },
   "scripts": {
+    "build": "./node_modules/.bin/grunt html5only",
     "dev": "watch './node_modules/.bin/grunt debug_html5' src"
   },
   "devDependencies": {

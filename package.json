@@ -7,6 +7,9 @@
     "type": "git",
     "url": "https://github.com/johndyer/mediaelement.git"
   },
+  "scripts": {
+    "dev": "watch './node_modules/.bin/grunt debug_html5' src"
+  },
   "devDependencies": {
     "grunt": "^0.4.5",
     "grunt-cli": "^1.2.0",
@@ -17,6 +20,7 @@
     "grunt-contrib-uglify": "~0.2.2",
     "grunt-remove-logging": "~0.2.0",
     "grunt-shell": "~1.1.1",
-    "grunt-text-replace": "~0.3.12"
+    "grunt-text-replace": "~0.3.12",
+    "watch": "^1.0.2"
   }
 }

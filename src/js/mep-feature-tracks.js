@@ -453,12 +453,20 @@
 
 					div.innerHTML = html;
 
-					// Remove all `<script>` tags first
-					var scripts = div.getElementsByTagName('script');
-					var i = scripts.length;
-					while (i--) {
-						scripts[i].parentNode.removeChild(scripts[i]);
-					}
+          // Remove all nodes except those that are whitelisted
+          var elementWhitelist = [
+            'i', 'b', 'u', 'v', 'c',
+            'ruby', 'rt', 'lang', 'link'
+          ];
+          var elements = Array.from(div.children);
+          while (elements.length) {
+            var node = elements.shift();
+            if (elementWhitelist.includes(node.tagName.toLowerCase())) {
+              elements = elements.concat(Array.from(node.children));
+            } else {
+              node.parentNode.removeChild(node);
+            }
+          }
 
 					// Loop the elements and remove anything that contains value="javascript:" or an `on*` attribute
 					// (`onerror`, `onclick`, etc.)

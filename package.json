@@ -5,10 +5,10 @@
   "main": "build/mediaelement.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/johndyer/mediaelement.git"
+    "url": "https://github.com/instructure/mediaelement.git"
   },
   "scripts": {
-    "build": "./node_modules/.bin/grunt html5only",
+    "dist": "./node_modules/.bin/grunt html5only",
     "dev": "watch './node_modules/.bin/grunt debug_html5' src"
   },
   "devDependencies": {

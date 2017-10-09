@@ -3432,7 +3432,7 @@ function constrainedSeekTo(player, media, targetTime) {
 				.attr('tabindex', '0');
 		},
 
-		setAriaLabel: function() {
+		setCaptionButtonAriaLabel: function() {
 			var label = this.options.tracksText
 			var current = this.selectedTrack
 
@@ -3468,7 +3468,7 @@ function constrainedSeekTo(player, media, targetTime) {
 				}
 			}
 
-			t.setAriaLabel();
+			t.setCaptionButtonAriaLabel();
 		},
 
 		loadNextTrack: function() {

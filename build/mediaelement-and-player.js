@@ -3278,10 +3278,8 @@ function constrainedSeekTo(player, media, targetTime) {
 							})
 							.bind('mousemove', function() {
 								if (t.controlsEnabled) {
-									if (!t.controlsAreVisible) {
-										t.showControls();
-									}
 									if (!t.options.alwaysShowControls) {
+										t.showControls();
 										t.startControlsTimer(t.options.controlsTimeoutMouseEnter);
 									}
 								}
@@ -3293,6 +3291,14 @@ function constrainedSeekTo(player, media, targetTime) {
 									}
 								}
 							});
+
+						t.controls.on('focusin', function () {
+							if (t.controlsEnabled) {
+								if (!t.options.alwaysShowControls) {
+									t.showControls();
+								}
+							}
+            });
 					}
 
 					if(t.options.hideVideoControlsOnLoad) {

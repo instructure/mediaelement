@@ -407,11 +407,11 @@ function constrainedSeekTo(player, media, targetTime) {
 				}
 
 				// insert description for screen readers
-				$('<span class="mejs-offscreen">' + videoPlayerTitle + '</span>').insertBefore(t.$media);
+				$('<span class="mejs-offscreen">').text(videoPlayerTitle).insertBefore(t.$media);
 				// build container
 				t.container =
 					$('<div id="' + t.id + '" class="mejs-container ' + (mejs.MediaFeatures.svgAsImg ? 'svg' : 'no-svg') +
-					  '" tabindex="0" role="application" aria-label="' + videoPlayerTitle + '">'+
+					  '" tabindex="0" role="application">'+
 						'<div class="mejs-inner">'+
 							'<div class="mejs-mediaelement"></div>'+
 							'<div class="mejs-layers"></div>'+
@@ -419,6 +419,7 @@ function constrainedSeekTo(player, media, targetTime) {
 							'<div class="mejs-clear"></div>'+
 						'</div>' +
 					'</div>')
+          .attr('aria-label', videoPlayerTitle)
 					.addClass(t.$media[0].className)
 					.insertBefore(t.$media)
 					.focus(function ( e ) {

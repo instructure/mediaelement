@@ -925,8 +925,9 @@ function constrainedSeekTo(player, media, targetTime) {
 				});
 
 				// This is a work-around for a bug in the YouTube iFrame player, which means
-				//	we can't use the play() API for the initial playback on iOS or Android;
-				//	user has to start playback directly by tapping on the iFrame.
+				// we can't use the play() API for the initial playback on iOS or Android;
+				// user has to start playback directly by tapping on the iFrame. Due to changes
+				// in the Chrome 72 autoplay policy, this mitigation was enabled for all browsers
 				if (t.media.pluginType == 'youtube') {
 					t.container.find('.mejs-overlay-play').hide();
 					t.container.find('.mejs-poster').hide();

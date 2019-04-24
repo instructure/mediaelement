@@ -1767,6 +1767,7 @@ mejs.YouTubeApi = {
 		var
 		pluginMediaElement = settings.pluginMediaElement,
 		defaultVars = {controls:0, wmode:'transparent'},
+		seekTimeoutId,
 		player = new YT.Player(settings.containerId, {
 			height: settings.height,
 			width: settings.width,
@@ -1794,12 +1795,21 @@ mejs.YouTubeApi = {
 					var originalSeekTo = settings.pluginMediaElement.pluginApi.seekTo.bind(player);
 
 					settings.pluginMediaElement.pluginApi.seekTo = function(seconds, allowSeekAhead) {
+						var startingTime = player.getCurrentTime();
+
+						var fireEventsAfterSeek = function() {
+							clearTimeout(seekTimeoutId);
+							seekTimeoutId = setTimeout(function() {
+								if (player.getCurrentTime() === startingTime) {
+									return fireEventsAfterSeek();
+								}
+								mejs.YouTubeApi.createEvent(player, pluginMediaElement, 'seeked');
+								mejs.YouTubeApi.createEvent(player, pluginMediaElement, 'timeupdate');
+							}, 50);
+						}
+
 						originalSeekTo(seconds, allowSeekAhead);
-						// Allow player to update before triggering timeupdate event
-						setTimeout(function() {
-							mejs.YouTubeApi.createEvent(player, pluginMediaElement, 'seeked');
-							mejs.YouTubeApi.createEvent(player, pluginMediaElement, 'timeupdate');
-						}, 100);
+						fireEventsAfterSeek();
 					}
 
 					if (typeof pluginMediaElement.attributes.autoplay !== 'undefined') {

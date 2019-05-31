@@ -5478,919 +5478,1124 @@ function constrainedSeekTo(player, media, targetTime) {
 })(mejs.$);
 
 (function($) {
+  // Speed
+  $.extend(mejs.MepDefaults, {
+    // We also support to pass object like this:
+    // [{name: 'Slow', value: '0.75'}, {name: 'Normal', value: '1.00'}, ...]
+    speeds: ["2.00", "1.50", "1.25", "1.00", "0.75"],
 
-	// Speed
-	$.extend(mejs.MepDefaults, {
+    defaultSpeed: "1.00",
 
-		// We also support to pass object like this:
-		// [{name: 'Slow', value: '0.75'}, {name: 'Normal', value: '1.00'}, ...]
-		speeds: ['2.00', '1.50', '1.25', '1.00', '0.75'],
+    speedChar: "x",
 
-		defaultSpeed: '1.00',
+    speedLabel: "Change playback speed"
+  });
 
-		speedChar: 'x',
+  $.extend(MediaElementPlayer.prototype, {
+    buildspeed: function(player, controls, layers, media) {
+      var t = this;
+      var hoverTimeout;
 
-		speedLabel: 'Change playback speed'
-	});
+      if (t.media.pluginType == "native") {
+        var speedButton = null,
+          speedSelector = null,
+          playbackSpeed = null,
+          inputId = null,
+          isCurrent = null;
 
-	$.extend(MediaElementPlayer.prototype, {
+        var speeds = [];
+        var defaultInArray = false;
+        for (var i = 0, len = t.options.speeds.length; i < len; i++) {
+          var s = t.options.speeds[i];
+          if (typeof s === "string") {
+            speeds.push({
+              name: s + t.options.speedChar,
+              value: s
+            });
+            if (s === t.options.defaultSpeed) {
+              defaultInArray = true;
+            }
+          } else {
+            speeds.push(s);
+            if (s.value === t.options.defaultSpeed) {
+              defaultInArray = true;
+            }
+          }
+        }
 
-		buildspeed: function(player, controls, layers, media) {
-			var t = this;
-			var hoverTimeout;
+        if (!defaultInArray) {
+          speeds.push({
+            name: t.options.defaultSpeed + t.options.speedChar,
+            value: t.options.defaultSpeed
+          });
+        }
 
-			if (t.media.pluginType == 'native') {
-				var
-					speedButton = null,
-					speedSelector = null,
-					playbackSpeed = null,
-					inputId = null,
-					isCurrent = null;
+        speeds.sort(function(a, b) {
+          return parseFloat(b.value) - parseFloat(a.value);
+        });
 
-				var speeds = [];
-				var defaultInArray = false;
-				for (var i=0, len=t.options.speeds.length; i < len; i++) {
-					var s = t.options.speeds[i];
-					if (typeof(s) === 'string'){
-						speeds.push({
-							name: s + t.options.speedChar,
-							value: s
-						});
-						if(s === t.options.defaultSpeed) {
-							defaultInArray = true;
-						}
-					}
-					else {
-						speeds.push(s);
-						if(s.value === t.options.defaultSpeed) {
-							defaultInArray = true;
-						}
-					}
-				}
+        var getSpeedNameFromValue = function(value) {
+          for (i = 0, len = speeds.length; i < len; i++) {
+            if (speeds[i].value === value) {
+              return speeds[i].name;
+            }
+          }
+        };
 
-				if (!defaultInArray) {
-					speeds.push({
-						name: t.options.defaultSpeed + t.options.speedChar,
-						value: t.options.defaultSpeed
-					});
-				}
+        var speedLabel = function(speed) {
+          return mejs.i18n.t(
+            t.options.speedLabel +
+              ": Current speed " +
+              getSpeedNameFromValue(speed)
+          );
+        };
 
-				speeds.sort(function(a, b) {
-					return parseFloat(b.value) - parseFloat(a.value);
-				});
+        var html =
+          '<div class="mejs-button mejs-speed-button">' +
+          '<button role="button" aria-haspopup="true" aria-controls="' +
+          t.id +
+          '" type="button" aria-label="' +
+          speedLabel(t.options.defaultSpeed) +
+          '" aria-live="assertive">' +
+          getSpeedNameFromValue(t.options.defaultSpeed) +
+          "</button>" +
+          '<div class="mejs-speed-selector mejs-offscreen" role="menu" aria-expanded="false" aria-hidden="true">' +
+          "<ul>";
 
-				var getSpeedNameFromValue = function(value) {
-					for(i=0,len=speeds.length; i <len; i++) {
-						if (speeds[i].value === value) {
-							return speeds[i].name;
-						}
-					}
-				};
+        for (i = 0, il = speeds.length; i < il; i++) {
+          inputId = t.id + "-speed-" + speeds[i].value;
+          isCurrent = speeds[i].value === t.options.defaultSpeed;
+          html +=
+            "<li>" +
+            '<input type="radio" name="speed" role="menuitemradio"' +
+            'value="' +
+            speeds[i].value +
+            '" ' +
+            'id="' +
+            inputId +
+            '" ' +
+            (isCurrent ? ' checked="checked"' : "") +
+            ' aria-selected="' +
+            isCurrent +
+            '"' +
+            ' aria-label="' +
+            getSpeedNameFromValue(speeds[i].value) +
+            '"' +
+            ' tabindex="-1"' +
+            " />" +
+            '<label for="' +
+            inputId +
+            '" ' +
+            'aria-hidden="true"' +
+            (isCurrent ? ' class="mejs-speed-selected"' : "") +
+            ">" +
+            speeds[i].name +
+            "</label>" +
+            "</li>";
+        }
+        html += "</ul></div></div>";
 
-				var speedLabel = function(speed) {
-					return mejs.i18n.t(t.options.speedLabel + ': Current speed ' + getSpeedNameFromValue(speed));
-				}
+        player.speedButton = speedButton = $(html).appendTo(controls);
+        speedSelector = speedButton.find(".mejs-speed-selector");
 
-				var html = '<div class="mejs-button mejs-speed-button">' +
-							'<button role="button" aria-haspopup="true" aria-controls="' + t.id + '" type="button" aria-label="' + speedLabel(t.options.defaultSpeed) + '" aria-live="assertive">' + getSpeedNameFromValue(t.options.defaultSpeed) + '</button>' +
-							'<div class="mejs-speed-selector mejs-offscreen" role="menu" aria-expanded="false" aria-hidden="true">' +
-							'<ul>';
+        playbackSpeed = t.options.defaultSpeed;
 
-				for (i = 0, il = speeds.length; i<il; i++) {
-					inputId = t.id + '-speed-' + speeds[i].value;
-					isCurrent = (speeds[i].value === t.options.defaultSpeed);
-					html += '<li>' +
-								'<input type="radio" name="speed" role="menuitemradio"' +
-											'value="' + speeds[i].value + '" ' +
-											'id="' + inputId + '" ' +
-											(isCurrent ? ' checked="checked"' : '') +
-											' aria-selected="' + isCurrent + '"' +
-											' aria-label="' + getSpeedNameFromValue(speeds[i].value) + '"' +
-											' tabindex="-1"' +
-											' />' +
-								'<label for="' + inputId + '" ' + 'aria-hidden="true"' +
-											(isCurrent ? ' class="mejs-speed-selected"' : '') +
-											'>' + speeds[i].name + '</label>' +
-							'</li>';
-				}
-				html += '</ul></div></div>';
+        media.addEventListener(
+          "loadedmetadata",
+          function(e) {
+            if (playbackSpeed) {
+              media.playbackRate = parseFloat(playbackSpeed);
+            }
+          },
+          true
+        );
 
-				player.speedButton = speedButton = $(html).appendTo(controls);
-				speedSelector = speedButton.find('.mejs-speed-selector');
+        speedSelector.on("click", 'input[type="radio"]', function() {
+          // set aria states
+          $(this)
+            .attr("aria-selected", true)
+            .attr("checked", "checked");
+          $(this)
+            .closest(".mejs-speed-selector")
+            .find("input[type=radio]")
+            .not(this)
+            .attr("aria-selected", "false")
+            .removeAttr("checked");
 
-				playbackSpeed = t.options.defaultSpeed;
+          var newSpeed = $(this).attr("value");
+          playbackSpeed = newSpeed;
+          var newPlaybackRate = parseFloat(newSpeed);
+          media.playbackRate = newPlaybackRate;
 
-				media.addEventListener('loadedmetadata', function(e) {
-					if (playbackSpeed) {
-						media.playbackRate = parseFloat(playbackSpeed);
-					}
-				}, true);
+          // IE11 doesn't remember the user-selected playbackRate once
+          // clicking play/pause after setting the rate, so we save
+          // the value to `this` and reference it in the play/pause handler
+          // see: mep-feature-playpause.js
+          t.options.playbackRate = newPlaybackRate;
 
-				speedSelector
-					.on('click', 'input[type="radio"]', function() {
-						// set aria states
-						$(this).attr('aria-selected', true).attr('checked', 'checked');
-						$(this).closest('.mejs-speed-selector').find('input[type=radio]').not(this).attr('aria-selected', 'false').removeAttr('checked');
+          speedButton
+            .find("button")
+            .html(getSpeedNameFromValue(newSpeed))
+            .attr("aria-label", speedLabel(newSpeed));
+          speedButton
+            .find(".mejs-speed-selected")
+            .removeClass("mejs-speed-selected");
+          speedButton
+            .find('input[type="radio"]:checked')
+            .next()
+            .addClass("mejs-speed-selected");
+        });
+        speedButton
+          // set size on demand
+          .one("mouseenter focusin", function() {
+            speedSelector
+              .height(
+                speedButton.find(".mejs-speed-selector ul").outerHeight(true) +
+                  speedButton.find(".mejs-speed-translations").outerHeight(true)
+              )
+              .css("top", -1 * speedSelector.height() + "px");
+          })
 
-						var newSpeed = $(this).attr('value');
-						playbackSpeed = newSpeed;
-                                               var newPlaybackRate = parseFloat(newSpeed);
-						media.playbackRate = newPlaybackRate;
+          // hover
+          .hover(
+            function() {
+              clearTimeout(hoverTimeout);
+              player.showSpeedSelector();
+            },
+            function() {
+              hoverTimeout = setTimeout(function() {
+                player.hideSpeedSelector();
+              }, t.options.menuTimeoutMouseLeave);
+            }
+          )
 
-                                               // IE11 doesn't remember the user-selected playbackRate once
-                                               // clicking play/pause after setting the rate, so we save
-                                               // the value to `this` and reference it in the play/pause handler
-                                               // see: mep-feature-playpause.js
-                                               t.options.playbackRate = newPlaybackRate;
+          // keyboard menu activation
+          .on("keydown", function(e) {
+            var keyCode = e.keyCode;
+            // dont want menu events propagating to the radio buttons
+            if (e.target === $(this).find("button")[0]) e.stopPropagation();
 
-                                               speedButton.find('button')
-							.html(getSpeedNameFromValue(newSpeed))
-							.attr('aria-label', speedLabel(newSpeed));
-						speedButton.find('.mejs-speed-selected').removeClass('mejs-speed-selected');
-						speedButton.find('input[type="radio"]:checked').next().addClass('mejs-speed-selected');
-					});
-				speedButton
-				// set size on demand
-					.one( 'mouseenter focusin', function() {
-						speedSelector
-							.height(
-								speedButton.find('.mejs-speed-selector ul').outerHeight(true) +
-								speedButton.find('.mejs-speed-translations').outerHeight(true))
-							.css('top', (-1 * speedSelector.height()) + 'px');
-						})
+            switch (keyCode) {
+              case 32: // space
+                if (!mejs.MediaFeatures.isFirefox) {
+                  // space sends the click event in Firefox
+                  player.showSpeedSelector();
+                }
+                break;
+              case 38: // up arrow
+              case 13: // enter
+                player.showSpeedSelector();
+                break;
+              case 27: // esc
+                player.hideSpeedSelector();
+                $(this)
+                  .find("button")
+                  .focus();
+                break;
+              default:
+                return true;
+            }
+          })
 
-						// hover
-						.hover(function() {
-							clearTimeout(hoverTimeout);
-							player.showSpeedSelector();
-						}, function() {
-							hoverTimeout = setTimeout(function () {
-								player.hideSpeedSelector();
-							}, t.options.menuTimeoutMouseLeave);
-						})
+          // close menu when tabbing away
+          .on(
+            "focusout",
+            mejs.Utility.debounce(function(e) {
+              // Safari triggers focusout multiple times
+              // Firefox does NOT support e.relatedTarget to see which element
+              // just lost focus, so wait to find the next focused element
+              setTimeout(function() {
+                var parent = $(document.activeElement).closest(
+                  ".mejs-speed-selector"
+                );
+                if (!parent.length) {
+                  // focus is outside the control; close menu
+                  player.hideSpeedSelector();
+                }
+              }, 0);
+            }, 100)
+          )
 
-						// keyboard menu activation
-						.on('keydown', function (e) {
-							var keyCode = e.keyCode;
+          // Handle click so that screen readers can toggle the menu
+          .on("click", "button", function(e) {
+            if (
+              $(this)
+                .siblings(".mejs-speed-selector")
+                .hasClass("mejs-offscreen")
+            ) {
+              player.showSpeedSelector();
+            } else {
+              player.hideSpeedSelector();
+            }
+          });
+      }
+    },
 
-							switch (keyCode) {
-							case 32: // space
-								if (!mejs.MediaFeatures.isFirefox) { // space sends the click event in Firefox
-									player.showSpeedSelector();
-								}
-								$(this).find('.mejs-speed-selector')
-									.find('input[type=radio]:checked').first().focus();
-								break;
-							case 13: // enter
-								player.showSpeedSelector();
-								$(this).find('.mejs-speed-selector')
-									.find('input[type=radio]:checked').first().focus();
-								break;
-							case 27: // esc
-								player.hideSpeedSelector();
-								$(this).find('button').focus();
-								break;
-							default:
-								return true;
-						}
-					})
+    hideSpeedSelector: function() {
+      this.speedButton
+        .find(".mejs-speed-selector")
+        .addClass("mejs-offscreen")
+        .attr("aria-expanded", "false")
+        .attr("aria-hidden", "true")
+        .find("input[type=radio]") // make radios not focusable
+        .attr("tabindex", "-1");
+    },
 
-					// close menu when tabbing away
-					.on('focusout', mejs.Utility.debounce(function (e) { // Safari triggers focusout multiple times
-						// Firefox does NOT support e.relatedTarget to see which element
-						// just lost focus, so wait to find the next focused element
-						setTimeout(function () {
-							var parent = $(document.activeElement).closest('.mejs-speed-selector');
-							if (!parent.length) {
-								// focus is outside the control; close menu
-								player.hideSpeedSelector();
-							}
-						}, 0);
-					}, 100))
-
-					// Handle click so that screen readers can toggle the menu
-					.on('click', 'button', function (e) {
-						if ($(this).siblings('.mejs-speed-selector').hasClass('mejs-offscreen')) {
-							player.showSpeedSelector();
-							$(this).siblings('.mejs-speed-selector').find('input[type=radio]:checked').first().focus();
-						} else {
-							player.hideSpeedSelector();
-						}
-					});
-			}
-		},
-
-		hideSpeedSelector: function () {
-			this.speedButton.find('.mejs-speed-selector')
-				.addClass('mejs-offscreen')
-				.attr('aria-expanded', 'false')
-				.attr('aria-hidden', 'true')
-				.find('input[type=radio]') // make radios not focusable
-				.attr('tabindex', '-1');
-		},
-
-		showSpeedSelector: function () {
-			this.speedButton.find('.mejs-speed-selector')
-				.removeClass('mejs-offscreen')
-				.attr('aria-expanded', 'true')
-				.attr('aria-hidden', 'false')
-				.find('input[type=radio]')
-				.attr('tabindex', '0');
-		}
-	});
-
+    showSpeedSelector: function() {
+      if (
+        this.speedButton.find(".mejs-speed-selector").hasClass("mejs-offscreen")
+      ) {
+        this.speedButton
+          .find(".mejs-speed-selector")
+          .removeClass("mejs-offscreen")
+          .attr("aria-expanded", "true")
+          .attr("aria-hidden", "false")
+          .find("input[type=radio]")
+          .attr("tabindex", "0");
+        this.speedButton
+          .find(".mejs-speed-selector")
+          .find("input[type=radio]:checked")
+          .first()
+          .focus();
+      }
+    }
+  });
 })(mejs.$);
 
 (function($) {
-
-	// add extra default options
-	$.extend(mejs.MepDefaults, {
-		// this will automatically turn on a <track>
-		startLanguage: '',
-
-		tracksText: '',
-
-		// By default, no WAI-ARIA live region - don't make a
-		// screen reader speak captions over an audio track.
-		tracksAriaLive: false,
-
-		// option to remove the [cc] button when no <track kind="subtitles"> are present
-		hideCaptionsButtonWhenEmpty: true,
-
-		// If true and we only have one track, change captions to popup
-		toggleCaptionsButtonWhenOnlyOne: false,
-
-		// #id or .class
-		slidesSelector: ''
-	});
-
-	$.extend(MediaElementPlayer.prototype, {
-
-		hasChapters: false,
-
-		cleartracks: function(player, controls, layers, media){
-			if(player) {
-				if(player.captions) player.captions.remove();
-				if(player.chapters) player.chapters.remove();
-				if(player.captionsText) player.captionsText.remove();
-				if(player.captionsButton) player.captionsButton.remove();
-			}
-		},
-		buildtracks: function(player, controls, layers, media) {
-			if (player.tracks.length === 0)
-				return;
-
-			var t = this,
-				attr = t.options.tracksAriaLive ?
-					'role="log" aria-live="assertive" aria-atomic="false"' : '',
-				tracksTitle = t.options.tracksText ? t.options.tracksText : mejs.i18n.t('mejs.captions-subtitles'),
-				i,
-				kind;
-
-			if (t.domNode.textTracks) { // if browser will do native captions, prefer mejs captions, loop through tracks and hide
-				for (i = t.domNode.textTracks.length - 1; i >= 0; i--) {
-					t.domNode.textTracks[i].mode = "hidden";
-				}
-			}
-			t.cleartracks(player, controls, layers, media);
-			player.chapters =
-					$('<div class="mejs-chapters mejs-layer"></div>')
-						.prependTo(layers).hide();
-			player.captions =
-					$('<div class="mejs-captions-layer mejs-layer"><div class="mejs-captions-position mejs-captions-position-hover" ' +
-					attr + '><span class="mejs-captions-text"></span></div></div>')
-						.prependTo(layers).hide();
-			player.captionsText = player.captions.find('.mejs-captions-text');
-			player.captionsButton =
-					$('<div class="mejs-button mejs-captions-button">'+
-						'<button type="button" aria-controls="' + t.id + '" title="' + tracksTitle + '" aria-label="' + tracksTitle + '"></button>'+
-						'<div class="mejs-captions-selector mejs-offscreen" role="menu" aria-expanded="false" aria-hidden="true">'+
-							'<ul>'+
-								'<li>'+
-									'<input type="radio" name="' + player.id + '_captions" id="' + player.id + '_captions_none" value="none" checked="checked" role="menuitemradio" aria-selected="true" aria-label="' + mejs.i18n.t('mejs.none') + '" tabindex="-1" />' +
-									'<label for="' + player.id + '_captions_none" aria-hidden="true">' + mejs.i18n.t('mejs.none') +'</label>'+
-								'</li>'	+
-							'</ul>'+
-						'</div>'+
-					'</div>')
-						.appendTo(controls);
-
-
-			var subtitleCount = 0;
-			for (i=0; i<player.tracks.length; i++) {
-				kind = player.tracks[i].kind;
-				if (kind === 'subtitles' || kind === 'captions') {
-					subtitleCount++;
-				}
-			}
-
-			// if only one language then just make the button a toggle
-			if (t.options.toggleCaptionsButtonWhenOnlyOne && subtitleCount == 1){
-				// click
-				player.captionsButton.on('click',function() {
-					if (player.selectedTrack === null) {
-						lang = player.tracks[0].srclang;
-					} else {
-						lang = 'none';
-					}
-					player.setTrack(lang);
-				});
-			} else {
-				// hover
-				var hoverTimeout;
-				player.captionsButton.hover(function() {
-					clearTimeout(hoverTimeout);
-					player.showCaptionsSelector();
-				}, function() {
-					hoverTimeout = setTimeout(function() {
-						player.hideCaptionsSelector();
-					}, t.options.menuTimeoutMouseLeave);
-				})
-
-				// handle clicks to the language radio buttons
-				.on('keydown', function(e) {
-					var keyCode = e.keyCode;
-					switch (keyCode) {
-						case 32: // space
-							if (!mejs.MediaFeatures.isFirefox) { // space sends the click event in Firefox
-								player.showCaptionsSelector();
-							}
-							$(this).find('.mejs-captions-selector')
-								.find('input[type=radio]:checked').first().focus()
-							break;
-						case 13: // enter
-							player.showCaptionsSelector();
-							$(this).find('.mejs-captions-selector')
-								.find('input[type=radio]:checked').first().focus()
-							break;
-						case 27: // esc
-							player.hideCaptionsSelector();
-							$(this).find('button').focus();
-							break;
-						default:
-							return true;
-					}
-				})
-
-				// close menu when tabbing away
-				.on('focusout', mejs.Utility.debounce(function (e) { // Safari triggers focusout multiple times
-					// Firefox does NOT support e.relatedTarget to see which element
-					// just lost focus, so wait to find the next focused element
-					setTimeout(function () {
-						var parent = $(document.activeElement).closest('.mejs-captions-selector');
-						if (!parent.length) {
-							// focus is outside the control; close menu
-							player.hideCaptionsSelector();
-						}
-					}, 0);
-				}, 100))
-
-				// handle clicks to the language radio buttons
-				.on('click', 'input[type=radio]', function() {
-					lang = this.value;
-					player.setTrack(lang);
-				})
-
-				.on('click', 'button', function() {
-					if ($(this).siblings('.mejs-captions-selector').hasClass('mejs-offscreen')) {
-						player.showCaptionsSelector();
-						$(this).siblings('.mejs-captions-selector').find('input[type=radio]:checked').first().focus();
-					} else {
-						player.hideCaptionsSelector();
-					}
-				});
-
-			}
-
-			if (!player.options.alwaysShowControls) {
-				// move with controls
-				player.container
-					.bind('controlsshown', function () {
-						// push captions above controls
-						player.container.find('.mejs-captions-position').addClass('mejs-captions-position-hover');
-
-					})
-					.bind('controlshidden', function () {
-						if (!media.paused) {
-							// move back to normal place
-							player.container.find('.mejs-captions-position').removeClass('mejs-captions-position-hover');
-						}
-					});
-			} else {
-				player.container.find('.mejs-captions-position').addClass('mejs-captions-position-hover');
-			}
-
-			player.trackToLoad = -1;
-			player.selectedTrack = null;
-			player.isLoadingTrack = false;
-
-			// add to list
-			for (i=0; i<player.tracks.length; i++) {
-				kind = player.tracks[i].kind;
-				if (kind === 'subtitles' || kind === 'captions') {
-					player.addTrackButton(player.tracks[i].srclang, player.tracks[i].label);
-				}
-			}
-
-			// start loading tracks
-			player.loadNextTrack();
-
-			media.addEventListener('timeupdate',function() {
-				player.displayCaptions();
-			}, false);
-
-			if (player.options.slidesSelector !== '') {
-				player.slidesContainer = $(player.options.slidesSelector);
-
-				media.addEventListener('timeupdate',function() {
-					player.displaySlides();
-				}, false);
-
-			}
-
-			media.addEventListener('loadedmetadata', function() {
-				player.displayChapters();
-			}, false);
-
-			player.container.hover(
-				function () {
-					// chapters
-					if (player.hasChapters) {
-						player.chapters.removeClass('mejs-offscreen');
-						player.chapters.fadeIn(200).height(player.chapters.find('.mejs-chapter').outerHeight());
-					}
-				},
-				function () {
-					if (player.hasChapters && !media.paused) {
-						player.chapters.fadeOut(200, function() {
-							$(this).addClass('mejs-offscreen');
-							$(this).css('display','block');
-						});
-					}
-				});
-
-			t.container.on('controlsresize', function() {
-				t.adjustLanguageBox();
-			});
-
-			// check for autoplay
-			if (player.node.getAttribute('autoplay') !== null) {
-				player.chapters.addClass('mejs-offscreen');
-			}
-		},
-
-		hideCaptionsSelector: function () {
-			this.captionsButton.find('.mejs-captions-selector')
-				.addClass('mejs-offscreen')
-				.attr('aria-expanded', 'false')
-				.attr('aria-hidden', 'true')
-				.find('input[type=radio]') // make radios not focusable
-				.attr('tabindex', '-1');
-		},
-
-		showCaptionsSelector: function () {
-			this.captionsButton.find('.mejs-captions-selector')
-				.removeClass('mejs-offscreen')
-				.attr('aria-expanded', 'true')
-				.attr('aria-hidden', 'false')
-				.find('input[type=radio]')
-				.attr('tabindex', '0');
-		},
-
-		setTrackAriaLabel: function() {
-			var label = this.options.tracksText
-			var current = this.selectedTrack
-
-			if (current) {
-				label += ': ' + current.label;
-			}
-
-			this.captionsButton.find('button')
-				.attr('aria-label', label)
-				.attr('title', label);
-		},
-
-		setTrack: function(lang){
-
-			var t = this,
-				i;
-
-			$(this).attr('aria-selected', true).attr('checked', 'checked');
-			$(this).closest('.mejs-captions-selector').find('input[type=radio]').not(this).attr('aria-selected', 'false').removeAttr('checked');
-			if (lang == 'none') {
-				t.selectedTrack = null;
-				t.captionsButton.removeClass('mejs-captions-enabled');
-			} else {
-				for (i=0; i<t.tracks.length; i++) {
-					if (t.tracks[i].srclang == lang) {
-						if (t.selectedTrack === null)
-							t.captionsButton.addClass('mejs-captions-enabled');
-						t.selectedTrack = t.tracks[i];
-						t.captions.attr('lang', t.selectedTrack.srclang);
-						t.displayCaptions();
-						break;
-					}
-				}
-			}
-
-			t.setTrackAriaLabel();
-		},
-
-		loadNextTrack: function() {
-			var t = this;
-
-			t.trackToLoad++;
-			if (t.trackToLoad < t.tracks.length) {
-				t.isLoadingTrack = true;
-				t.loadTrack(t.trackToLoad);
-			} else {
-				// add done?
-				t.isLoadingTrack = false;
-
-				t.checkForTracks();
-			}
-		},
-
-		loadTrack: function(index){
-			var
-				t = this,
-				track = t.tracks[index],
-				after = function() {
-
-					track.isLoaded = true;
-
-					t.enableTrackButton(track.srclang, track.label);
-
-					t.loadNextTrack();
-
-				};
-
-
-			if (track.src !== undefined || track.src !== "") {
-				$.ajax({
-					url: track.src,
-					dataType: "text",
-					success: function(d) {
-
-						// parse the loaded file
-						track.entries = mejs.TrackFormatParser.webvtt.parse(d);
-
-						after();
-
-						if (track.kind == 'chapters') {
-							t.media.addEventListener('play', function() {
-								if (t.media.duration > 0) {
-									t.displayChapters(track);
-								}
-							}, false);
-						}
-
-						if (track.kind == 'slides') {
-							t.setupSlides(track);
-						}
-					},
-					error: function() {
-						t.removeTrackButton(track.srclang);
-						t.loadNextTrack();
-					}
-				});
-			}
-		},
-
-		enableTrackButton: function(lang, label) {
-			var t = this;
-
-			if (label === '') {
-				label = mejs.language.codes[lang] || lang;
-			}
-
-			t.captionsButton
-				.find('input[value=' + lang + ']')
-					.prop('disabled', false)
-					.attr('aria-label', label)
-				.siblings('label')
-					.html( label );
-
-			// auto select
-			if (t.options.startLanguage == lang) {
-				$('#' + t.id + '_captions_' + lang).prop('checked', true).trigger('click');
-			}
-
-			t.adjustLanguageBox();
-		},
-
-		removeTrackButton: function(lang) {
-			var t = this;
-
-			t.captionsButton.find('input[value=' + lang + ']').closest('li').remove();
-
-			t.adjustLanguageBox();
-		},
-
-		addTrackButton: function(lang, label) {
-			var t = this;
-			if (label === '') {
-				label = mejs.language.codes[lang] || lang;
-			}
-
-			t.captionsButton.find('ul').append(
-				$('<li>'+
-					'<input type="radio" name="' + t.id + '_captions" id="' + t.id + '_captions_' + lang + '" value="' + lang + '" disabled="disabled" />' +
-					'<label for="' + t.id + '_captions_' + lang + '">' + label + ' (loading)' + '</label>'+
-				'</li>')
-			);
-
-			t.adjustLanguageBox();
-
-			// remove this from the dropdownlist (if it exists)
-			t.container.find('.mejs-captions-translations option[value=' + lang + ']').remove();
-		},
-
-		adjustLanguageBox:function() {
-			var t = this;
-			// adjust the size of the outer box
-			t.captionsButton.find('.mejs-captions-selector').height(
-				t.captionsButton.find('.mejs-captions-selector ul').outerHeight(true) +
-				t.captionsButton.find('.mejs-captions-translations').outerHeight(true)
-			);
-		},
-
-		checkForTracks: function() {
-			var
-				t = this,
-				hasSubtitles = false;
-
-			// check if any subtitles
-			if (t.options.hideCaptionsButtonWhenEmpty) {
-				for (var i=0; i<t.tracks.length; i++) {
-					var kind = t.tracks[i].kind;
-					if ((kind === 'subtitles' || kind === 'captions') && t.tracks[i].isLoaded) {
-						hasSubtitles = true;
-						break;
-					}
-				}
-
-				if (!hasSubtitles) {
-					t.captionsButton.hide();
-					t.setControlsSize();
-				}
-			}
-		},
-
-		displayCaptions: function() {
-
-			if (typeof this.tracks == 'undefined')
-				return;
-
-			var
-				t = this,
-				track = t.selectedTrack,
-				i,
-				sanitize = function (html) {
-					parser = new DOMParser();
-					doc = parser.parseFromString(html, "text/html");
-
-					// Remove all nodes except those that are whitelisted
-					var elementWhitelist = [
-						'i', 'b', 'u', 'v', 'c',
-						'ruby', 'rt', 'lang', 'link'
-					];
-					var elements = Array.from(doc.body.children || []);
-					while (elements.length) {
-						var node = elements.shift();
-						if (elementWhitelist.includes(node.tagName.toLowerCase())) {
-							elements = elements.concat(Array.from(node.children || []));
-						} else {
-							node.parentNode.removeChild(node);
-						}
-					}
-
-					// Loop the elements and remove anything that contains value="javascript:" or an `on*` attribute
-					// (`onerror`, `onclick`, etc.)
-					var allElements = doc.body.getElementsByTagName('*');
-					for (var i = 0, n = allElements.length; i < n; i++) {
-						var
-							attributesObj = allElements[i].attributes,
-							attributes = Array.prototype.slice.call(attributesObj)
-						;
-
-						for (var j = 0, total = attributes.length; j < total; j++) {
-							if (attributes[j].name.startsWith('on') || attributes[j].value.startsWith('javascript')) {
-								allElements[i].parentNode.removeChild(allElements[i]);
-							} else if (attributes[j].name === 'style') {
-								allElements[i].removeAttribute(attributes[j].name);
-							}
-						}
-
-					}
-
-					return doc.body.innerHTML;
-				};
-
-			if (track !== null && track.isLoaded) {
-				for (i=0; i<track.entries.times.length; i++) {
-					if (t.media.currentTime >= track.entries.times[i].start && t.media.currentTime <= track.entries.times[i].stop) {
-						// Set the line before the timecode as a class so the cue can be targeted if needed
-						t.captionsText.html(sanitize(track.entries.text[i])).attr('class', 'mejs-captions-text ' + (track.entries.times[i].identifier || ''));
-						t.captions.show().height(0);
-						return; // exit out if one is visible;
-					}
-				}
-				t.captions.hide();
-			} else {
-				t.captions.hide();
-			}
-		},
-
-		setupSlides: function(track) {
-			var t = this;
-
-			t.slides = track;
-			t.slides.entries.imgs = [t.slides.entries.text.length];
-			t.showSlide(0);
-
-		},
-
-		showSlide: function(index) {
-			if (typeof this.tracks == 'undefined' || typeof this.slidesContainer == 'undefined') {
-				return;
-			}
-
-			var t = this,
-				url = t.slides.entries.text[index],
-				img = t.slides.entries.imgs[index];
-
-			if (typeof img == 'undefined' || typeof img.fadeIn == 'undefined') {
-
-				t.slides.entries.imgs[index] = img = $('<img src="' + url + '">')
-						.on('load', function() {
-							img.appendTo(t.slidesContainer)
-								.hide()
-								.fadeIn()
-								.siblings(':visible')
-									.fadeOut();
-
-						});
-
-			} else {
-
-				if (!img.is(':visible') && !img.is(':animated')) {
-
-					//
-
-					img.fadeIn()
-						.siblings(':visible')
-							.fadeOut();
-				}
-			}
-
-		},
-
-		displaySlides: function() {
-
-			if (typeof this.slides == 'undefined')
-				return;
-
-			var
-				t = this,
-				slides = t.slides,
-				i;
-
-			for (i=0; i<slides.entries.times.length; i++) {
-				if (t.media.currentTime >= slides.entries.times[i].start && t.media.currentTime <= slides.entries.times[i].stop){
-
-					t.showSlide(i);
-
-					return; // exit out if one is visible;
-				}
-			}
-		},
-
-		displayChapters: function() {
-			var
-				t = this,
-				i;
-
-			for (i=0; i<t.tracks.length; i++) {
-				if (t.tracks[i].kind == 'chapters' && t.tracks[i].isLoaded) {
-					t.drawChapters(t.tracks[i]);
-					t.hasChapters = true;
-					break;
-				}
-			}
-		},
-
-		drawChapters: function(chapters) {
-			var
-				t = this,
-				i,
-				dur,
-				//width,
-				//left,
-				percent = 0,
-				usedPercent = 0;
-
-			t.chapters.empty();
-
-			for (i=0; i<chapters.entries.times.length; i++) {
-				dur = chapters.entries.times[i].stop - chapters.entries.times[i].start;
-				percent = Math.floor(dur / t.media.duration * 100);
-				if (percent + usedPercent > 100 || // too large
-					i == chapters.entries.times.length-1 && percent + usedPercent < 100) // not going to fill it in
-					{
-					percent = 100 - usedPercent;
-				}
-				//width = Math.floor(t.width * dur / t.media.duration);
-				//left = Math.floor(t.width * chapters.entries.times[i].start / t.media.duration);
-				//if (left + width > t.width) {
-				//	width = t.width - left;
-				//}
-
-				t.chapters.append( $(
-					'<div class="mejs-chapter" rel="' + chapters.entries.times[i].start + '" style="left: ' + usedPercent.toString() + '%;width: ' + percent.toString() + '%;">' +
-						'<div class="mejs-chapter-block' + ((i==chapters.entries.times.length-1) ? ' mejs-chapter-block-last' : '') + '">' +
-							'<span class="ch-title">' + chapters.entries.text[i] + '</span>' +
-							'<span class="ch-time">' + mejs.Utility.secondsToTimeCode(chapters.entries.times[i].start, t.options) + '&ndash;' + mejs.Utility.secondsToTimeCode(chapters.entries.times[i].stop, t.options) + '</span>' +
-						'</div>' +
-					'</div>'));
-				usedPercent += percent;
-			}
-
-			t.chapters.find('div.mejs-chapter').click(function() {
-				t.media.setCurrentTime( parseFloat( $(this).attr('rel') ) );
-				if (t.media.paused) {
-					t.media.play();
-				}
-			});
-
-			t.chapters.show();
-		}
-	});
-
-
-
-	mejs.language = {
-		codes:  {
-			af:'Afrikaans',
-			sq:'Albanian',
-			ar:'Arabic',
-			be:'Belarusian',
-			bg:'Bulgarian',
-			ca:'Catalan',
-			zh:'Chinese',
-			'zh-cn':'Chinese Simplified',
-			'zh-tw':'Chinese Traditional',
-			hr:'Croatian',
-			cs:'Czech',
-			da:'Danish',
-			nl:'Dutch',
-			en:'English',
-			et:'Estonian',
-			fl:'Filipino',
-			fi:'Finnish',
-			fr:'French',
-			gl:'Galician',
-			de:'German',
-			el:'Greek',
-			ht:'Haitian Creole',
-			iw:'Hebrew',
-			hi:'Hindi',
-			hu:'Hungarian',
-			is:'Icelandic',
-			id:'Indonesian',
-			ga:'Irish',
-			it:'Italian',
-			ja:'Japanese',
-			ko:'Korean',
-			lv:'Latvian',
-			lt:'Lithuanian',
-			mk:'Macedonian',
-			ms:'Malay',
-			mt:'Maltese',
-			no:'Norwegian',
-			fa:'Persian',
-			pl:'Polish',
-			pt:'Portuguese',
-			// 'pt-pt':'Portuguese (Portugal)',
-			ro:'Romanian',
-			ru:'Russian',
-			sr:'Serbian',
-			sk:'Slovak',
-			sl:'Slovenian',
-			es:'Spanish',
-			sw:'Swahili',
-			sv:'Swedish',
-			tl:'Tagalog',
-			th:'Thai',
-			tr:'Turkish',
-			uk:'Ukrainian',
-			vi:'Vietnamese',
-			cy:'Welsh',
-			yi:'Yiddish'
-		}
-	};
-
-	/*
+  // add extra default options
+  $.extend(mejs.MepDefaults, {
+    // this will automatically turn on a <track>
+    startLanguage: "",
+
+    tracksText: "",
+
+    // By default, no WAI-ARIA live region - don't make a
+    // screen reader speak captions over an audio track.
+    tracksAriaLive: false,
+
+    // option to remove the [cc] button when no <track kind="subtitles"> are present
+    hideCaptionsButtonWhenEmpty: true,
+
+    // If true and we only have one track, change captions to popup
+    toggleCaptionsButtonWhenOnlyOne: false,
+
+    // #id or .class
+    slidesSelector: ""
+  });
+
+  $.extend(MediaElementPlayer.prototype, {
+    hasChapters: false,
+
+    cleartracks: function(player, controls, layers, media) {
+      if (player) {
+        if (player.captions) player.captions.remove();
+        if (player.chapters) player.chapters.remove();
+        if (player.captionsText) player.captionsText.remove();
+        if (player.captionsButton) player.captionsButton.remove();
+      }
+    },
+    buildtracks: function(player, controls, layers, media) {
+      if (player.tracks.length === 0) return;
+
+      var t = this,
+        attr = t.options.tracksAriaLive
+          ? 'role="log" aria-live="assertive" aria-atomic="false"'
+          : "",
+        tracksTitle = t.options.tracksText
+          ? t.options.tracksText
+          : mejs.i18n.t("mejs.captions-subtitles"),
+        i,
+        kind;
+
+      if (t.domNode.textTracks) {
+        // if browser will do native captions, prefer mejs captions, loop through tracks and hide
+        for (i = t.domNode.textTracks.length - 1; i >= 0; i--) {
+          t.domNode.textTracks[i].mode = "hidden";
+        }
+      }
+      t.cleartracks(player, controls, layers, media);
+      player.chapters = $('<div class="mejs-chapters mejs-layer"></div>')
+        .prependTo(layers)
+        .hide();
+      player.captions = $(
+        '<div class="mejs-captions-layer mejs-layer"><div class="mejs-captions-position mejs-captions-position-hover" ' +
+          attr +
+          '><span class="mejs-captions-text"></span></div></div>'
+      )
+        .prependTo(layers)
+        .hide();
+      player.captionsText = player.captions.find(".mejs-captions-text");
+      player.captionsButton = $(
+        '<div class="mejs-button mejs-captions-button">' +
+          '<button type="button" aria-controls="' +
+          t.id +
+          '" title="' +
+          tracksTitle +
+          '" aria-label="' +
+          tracksTitle +
+          '"></button>' +
+          '<div class="mejs-captions-selector mejs-offscreen" role="menu" aria-expanded="false" aria-hidden="true">' +
+          "<ul>" +
+          "<li>" +
+          '<input type="radio" name="' +
+          player.id +
+          '_captions" id="' +
+          player.id +
+          '_captions_none" value="none" checked="checked" role="menuitemradio" aria-selected="true" aria-label="' +
+          mejs.i18n.t("mejs.none") +
+          '" tabindex="-1" />' +
+          '<label for="' +
+          player.id +
+          '_captions_none" aria-hidden="true">' +
+          mejs.i18n.t("mejs.none") +
+          "</label>" +
+          "</li>" +
+          "</ul>" +
+          "</div>" +
+          "</div>"
+      ).appendTo(controls);
+
+      var subtitleCount = 0;
+      for (i = 0; i < player.tracks.length; i++) {
+        kind = player.tracks[i].kind;
+        if (kind === "subtitles" || kind === "captions") {
+          subtitleCount++;
+        }
+      }
+
+      // if only one language then just make the button a toggle
+      if (t.options.toggleCaptionsButtonWhenOnlyOne && subtitleCount == 1) {
+        // click
+        player.captionsButton.on("click", function() {
+          if (player.selectedTrack === null) {
+            lang = player.tracks[0].srclang;
+          } else {
+            lang = "none";
+          }
+          player.setTrack(lang);
+        });
+      } else {
+        // hover
+        var hoverTimeout;
+        player.captionsButton
+          .hover(
+            function() {
+              clearTimeout(hoverTimeout);
+              player.showCaptionsSelector();
+            },
+            function() {
+              hoverTimeout = setTimeout(function() {
+                player.hideCaptionsSelector();
+              }, t.options.menuTimeoutMouseLeave);
+            }
+          )
+
+          // handle clicks to the language radio buttons
+          .on("keydown", function(e) {
+            var keyCode = e.keyCode;
+            switch (keyCode) {
+              case 32: // space
+                if (!mejs.MediaFeatures.isFirefox) {
+                  // space sends the click event in Firefox
+                  player.showCaptionsSelector();
+                }
+                $(this)
+                  .find(".mejs-captions-selector")
+                  .find("input[type=radio]:checked")
+                  .first()
+                  .focus();
+                break;
+              case 13: // enter
+                player.showCaptionsSelector();
+                $(this)
+                  .find(".mejs-captions-selector")
+                  .find("input[type=radio]:checked")
+                  .first()
+                  .focus();
+                break;
+              case 27: // esc
+                player.hideCaptionsSelector();
+                $(this)
+                  .find("button")
+                  .focus();
+                break;
+              default:
+                return true;
+            }
+          })
+
+          // close menu when tabbing away
+          .on(
+            "focusout",
+            mejs.Utility.debounce(function(e) {
+              // Safari triggers focusout multiple times
+              // Firefox does NOT support e.relatedTarget to see which element
+              // just lost focus, so wait to find the next focused element
+              setTimeout(function() {
+                var parent = $(document.activeElement).closest(
+                  ".mejs-captions-selector"
+                );
+                if (!parent.length) {
+                  // focus is outside the control; close menu
+                  player.hideCaptionsSelector();
+                }
+              }, 0);
+            }, 100)
+          )
+
+          // handle clicks to the language radio buttons
+          .on("click", "input[type=radio]", function() {
+            lang = this.value;
+            player.setTrack(lang);
+          })
+
+          .on("click", "button", function() {
+            if (
+              $(this)
+                .siblings(".mejs-captions-selector")
+                .hasClass("mejs-offscreen")
+            ) {
+              player.showCaptionsSelector();
+              $(this)
+                .siblings(".mejs-captions-selector")
+                .find("input[type=radio]:checked")
+                .first()
+                .focus();
+            } else {
+              player.hideCaptionsSelector();
+            }
+          });
+      }
+
+      if (!player.options.alwaysShowControls) {
+        // move with controls
+        player.container
+          .bind("controlsshown", function() {
+            // push captions above controls
+            player.container
+              .find(".mejs-captions-position")
+              .addClass("mejs-captions-position-hover");
+          })
+          .bind("controlshidden", function() {
+            if (!media.paused) {
+              // move back to normal place
+              player.container
+                .find(".mejs-captions-position")
+                .removeClass("mejs-captions-position-hover");
+            }
+          });
+      } else {
+        player.container
+          .find(".mejs-captions-position")
+          .addClass("mejs-captions-position-hover");
+      }
+
+      player.trackToLoad = -1;
+      player.selectedTrack = null;
+      player.isLoadingTrack = false;
+
+      // add to list
+      for (i = 0; i < player.tracks.length; i++) {
+        kind = player.tracks[i].kind;
+        if (kind === "subtitles" || kind === "captions") {
+          player.addTrackButton(
+            player.tracks[i].srclang,
+            player.tracks[i].label
+          );
+        }
+      }
+
+      // start loading tracks
+      player.loadNextTrack();
+
+      media.addEventListener(
+        "timeupdate",
+        function() {
+          player.displayCaptions();
+        },
+        false
+      );
+
+      if (player.options.slidesSelector !== "") {
+        player.slidesContainer = $(player.options.slidesSelector);
+
+        media.addEventListener(
+          "timeupdate",
+          function() {
+            player.displaySlides();
+          },
+          false
+        );
+      }
+
+      media.addEventListener(
+        "loadedmetadata",
+        function() {
+          player.displayChapters();
+        },
+        false
+      );
+
+      player.container.hover(
+        function() {
+          // chapters
+          if (player.hasChapters) {
+            player.chapters.removeClass("mejs-offscreen");
+            player.chapters
+              .fadeIn(200)
+              .height(player.chapters.find(".mejs-chapter").outerHeight());
+          }
+        },
+        function() {
+          if (player.hasChapters && !media.paused) {
+            player.chapters.fadeOut(200, function() {
+              $(this).addClass("mejs-offscreen");
+              $(this).css("display", "block");
+            });
+          }
+        }
+      );
+
+      t.container.on("controlsresize", function() {
+        t.adjustLanguageBox();
+      });
+
+      // check for autoplay
+      if (player.node.getAttribute("autoplay") !== null) {
+        player.chapters.addClass("mejs-offscreen");
+      }
+    },
+
+    hideCaptionsSelector: function() {
+      this.captionsButton
+        .find(".mejs-captions-selector")
+        .addClass("mejs-offscreen")
+        .attr("aria-expanded", "false")
+        .attr("aria-hidden", "true")
+        .find("input[type=radio]") // make radios not focusable
+        .attr("tabindex", "-1");
+    },
+
+    showCaptionsSelector: function() {
+      this.captionsButton
+        .find(".mejs-captions-selector")
+        .removeClass("mejs-offscreen")
+        .attr("aria-expanded", "true")
+        .attr("aria-hidden", "false")
+        .find("input[type=radio]")
+        .attr("tabindex", "0");
+    },
+
+    setTrackAriaLabel: function() {
+      var label = this.options.tracksText;
+      var current = this.selectedTrack;
+
+      if (current) {
+        label += ": " + current.label;
+      }
+
+      this.captionsButton
+        .find("button")
+        .attr("aria-label", label)
+        .attr("title", label);
+    },
+
+    setTrack: function(lang) {
+      var t = this,
+        i;
+
+      $(this)
+        .attr("aria-selected", true)
+        .attr("checked", "checked");
+      $(this)
+        .closest(".mejs-captions-selector")
+        .find("input[type=radio]")
+        .not(this)
+        .attr("aria-selected", "false")
+        .removeAttr("checked");
+      if (lang == "none") {
+        t.selectedTrack = null;
+        t.captionsButton.removeClass("mejs-captions-enabled");
+      } else {
+        for (i = 0; i < t.tracks.length; i++) {
+          if (t.tracks[i].srclang == lang) {
+            if (t.selectedTrack === null)
+              t.captionsButton.addClass("mejs-captions-enabled");
+            t.selectedTrack = t.tracks[i];
+            t.captions.attr("lang", t.selectedTrack.srclang);
+            t.displayCaptions();
+            break;
+          }
+        }
+      }
+
+      t.setTrackAriaLabel();
+    },
+
+    loadNextTrack: function() {
+      var t = this;
+
+      t.trackToLoad++;
+      if (t.trackToLoad < t.tracks.length) {
+        t.isLoadingTrack = true;
+        t.loadTrack(t.trackToLoad);
+      } else {
+        // add done?
+        t.isLoadingTrack = false;
+
+        t.checkForTracks();
+      }
+    },
+
+    loadTrack: function(index) {
+      var t = this,
+        track = t.tracks[index],
+        after = function() {
+          track.isLoaded = true;
+
+          t.enableTrackButton(track.srclang, track.label);
+
+          t.loadNextTrack();
+        };
+
+      if (track.src !== undefined || track.src !== "") {
+        $.ajax({
+          url: track.src,
+          dataType: "text",
+          success: function(d) {
+            // parse the loaded file
+            track.entries = mejs.TrackFormatParser.webvtt.parse(d);
+
+            after();
+
+            if (track.kind == "chapters") {
+              t.media.addEventListener(
+                "play",
+                function() {
+                  if (t.media.duration > 0) {
+                    t.displayChapters(track);
+                  }
+                },
+                false
+              );
+            }
+
+            if (track.kind == "slides") {
+              t.setupSlides(track);
+            }
+          },
+          error: function() {
+            t.removeTrackButton(track.srclang);
+            t.loadNextTrack();
+          }
+        });
+      }
+    },
+
+    enableTrackButton: function(lang, label) {
+      var t = this;
+
+      if (label === "") {
+        label = mejs.language.codes[lang] || lang;
+      }
+
+      t.captionsButton
+        .find("input[value=" + lang + "]")
+        .prop("disabled", false)
+        .attr("aria-label", label)
+        .siblings("label")
+        .html(label);
+
+      // auto select
+      if (t.options.startLanguage == lang) {
+        $("#" + t.id + "_captions_" + lang)
+          .prop("checked", true)
+          .trigger("click");
+      }
+
+      t.adjustLanguageBox();
+    },
+
+    removeTrackButton: function(lang) {
+      var t = this;
+
+      t.captionsButton
+        .find("input[value=" + lang + "]")
+        .closest("li")
+        .remove();
+
+      t.adjustLanguageBox();
+    },
+
+    addTrackButton: function(lang, label) {
+      var t = this;
+      if (label === "") {
+        label = mejs.language.codes[lang] || lang;
+      }
+
+      t.captionsButton
+        .find("ul")
+        .append(
+          $(
+            "<li>" +
+              '<input type="radio" name="' +
+              t.id +
+              '_captions" id="' +
+              t.id +
+              "_captions_" +
+              lang +
+              '" value="' +
+              lang +
+              '" disabled="disabled" />' +
+              '<label for="' +
+              t.id +
+              "_captions_" +
+              lang +
+              '">' +
+              label +
+              " (loading)" +
+              "</label>" +
+              "</li>"
+          )
+        );
+
+      t.adjustLanguageBox();
+
+      // remove this from the dropdownlist (if it exists)
+      t.container
+        .find(".mejs-captions-translations option[value=" + lang + "]")
+        .remove();
+    },
+
+    adjustLanguageBox: function() {
+      var t = this;
+      // adjust the size of the outer box
+      t.captionsButton
+        .find(".mejs-captions-selector")
+        .height(
+          t.captionsButton
+            .find(".mejs-captions-selector ul")
+            .outerHeight(true) +
+            t.captionsButton
+              .find(".mejs-captions-translations")
+              .outerHeight(true)
+        );
+    },
+
+    checkForTracks: function() {
+      var t = this,
+        hasSubtitles = false;
+
+      // check if any subtitles
+      if (t.options.hideCaptionsButtonWhenEmpty) {
+        for (var i = 0; i < t.tracks.length; i++) {
+          var kind = t.tracks[i].kind;
+          if (
+            (kind === "subtitles" || kind === "captions") &&
+            t.tracks[i].isLoaded
+          ) {
+            hasSubtitles = true;
+            break;
+          }
+        }
+
+        if (!hasSubtitles) {
+          t.captionsButton.hide();
+          t.setControlsSize();
+        }
+      }
+    },
+
+    displayCaptions: function() {
+      if (typeof this.tracks == "undefined") return;
+
+      var t = this,
+        track = t.selectedTrack,
+        i,
+        sanitize = function(html) {
+          parser = new DOMParser();
+          doc = parser.parseFromString(html, "text/html");
+
+          // Remove all nodes except those that are whitelisted
+          var elementWhitelist = [
+            "i",
+            "b",
+            "u",
+            "v",
+            "c",
+            "ruby",
+            "rt",
+            "lang",
+            "link"
+          ];
+          var elements = Array.from(doc.body.children || []);
+          while (elements.length) {
+            var node = elements.shift();
+            if (elementWhitelist.includes(node.tagName.toLowerCase())) {
+              elements = elements.concat(Array.from(node.children || []));
+            } else {
+              node.parentNode.removeChild(node);
+            }
+          }
+
+          // Loop the elements and remove anything that contains value="javascript:" or an `on*` attribute
+          // (`onerror`, `onclick`, etc.)
+          var allElements = doc.body.getElementsByTagName("*");
+          for (var i = 0, n = allElements.length; i < n; i++) {
+            var attributesObj = allElements[i].attributes,
+              attributes = Array.prototype.slice.call(attributesObj);
+            for (var j = 0, total = attributes.length; j < total; j++) {
+              if (
+                attributes[j].name.startsWith("on") ||
+                attributes[j].value.startsWith("javascript")
+              ) {
+                allElements[i].parentNode.removeChild(allElements[i]);
+              } else if (attributes[j].name === "style") {
+                allElements[i].removeAttribute(attributes[j].name);
+              }
+            }
+          }
+
+          return doc.body.innerHTML;
+        };
+
+      if (track !== null && track.isLoaded) {
+        for (i = 0; i < track.entries.times.length; i++) {
+          if (
+            t.media.currentTime >= track.entries.times[i].start &&
+            t.media.currentTime <= track.entries.times[i].stop
+          ) {
+            // Set the line before the timecode as a class so the cue can be targeted if needed
+            t.captionsText
+              .html(sanitize(track.entries.text[i]))
+              .attr(
+                "class",
+                "mejs-captions-text " +
+                  (track.entries.times[i].identifier || "")
+              );
+            t.captions.show().height(0);
+            return; // exit out if one is visible;
+          }
+        }
+        t.captions.hide();
+      } else {
+        t.captions.hide();
+      }
+    },
+
+    setupSlides: function(track) {
+      var t = this;
+
+      t.slides = track;
+      t.slides.entries.imgs = [t.slides.entries.text.length];
+      t.showSlide(0);
+    },
+
+    showSlide: function(index) {
+      if (
+        typeof this.tracks == "undefined" ||
+        typeof this.slidesContainer == "undefined"
+      ) {
+        return;
+      }
+
+      var t = this,
+        url = t.slides.entries.text[index],
+        img = t.slides.entries.imgs[index];
+
+      if (typeof img == "undefined" || typeof img.fadeIn == "undefined") {
+        t.slides.entries.imgs[index] = img = $('<img src="' + url + '">').on(
+          "load",
+          function() {
+            img
+              .appendTo(t.slidesContainer)
+              .hide()
+              .fadeIn()
+              .siblings(":visible")
+              .fadeOut();
+          }
+        );
+      } else {
+        if (!img.is(":visible") && !img.is(":animated")) {
+          //
+
+          img
+            .fadeIn()
+            .siblings(":visible")
+            .fadeOut();
+        }
+      }
+    },
+
+    displaySlides: function() {
+      if (typeof this.slides == "undefined") return;
+
+      var t = this,
+        slides = t.slides,
+        i;
+
+      for (i = 0; i < slides.entries.times.length; i++) {
+        if (
+          t.media.currentTime >= slides.entries.times[i].start &&
+          t.media.currentTime <= slides.entries.times[i].stop
+        ) {
+          t.showSlide(i);
+
+          return; // exit out if one is visible;
+        }
+      }
+    },
+
+    displayChapters: function() {
+      var t = this,
+        i;
+
+      for (i = 0; i < t.tracks.length; i++) {
+        if (t.tracks[i].kind == "chapters" && t.tracks[i].isLoaded) {
+          t.drawChapters(t.tracks[i]);
+          t.hasChapters = true;
+          break;
+        }
+      }
+    },
+
+    drawChapters: function(chapters) {
+      var t = this,
+        i,
+        dur,
+        //width,
+        //left,
+        percent = 0,
+        usedPercent = 0;
+
+      t.chapters.empty();
+
+      for (i = 0; i < chapters.entries.times.length; i++) {
+        dur = chapters.entries.times[i].stop - chapters.entries.times[i].start;
+        percent = Math.floor((dur / t.media.duration) * 100);
+        if (
+          percent + usedPercent > 100 || // too large
+          (i == chapters.entries.times.length - 1 &&
+            percent + usedPercent < 100)
+        ) {
+          // not going to fill it in
+          percent = 100 - usedPercent;
+        }
+        //width = Math.floor(t.width * dur / t.media.duration);
+        //left = Math.floor(t.width * chapters.entries.times[i].start / t.media.duration);
+        //if (left + width > t.width) {
+        //	width = t.width - left;
+        //}
+
+        t.chapters.append(
+          $(
+            '<div class="mejs-chapter" rel="' +
+              chapters.entries.times[i].start +
+              '" style="left: ' +
+              usedPercent.toString() +
+              "%;width: " +
+              percent.toString() +
+              '%;">' +
+              '<div class="mejs-chapter-block' +
+              (i == chapters.entries.times.length - 1
+                ? " mejs-chapter-block-last"
+                : "") +
+              '">' +
+              '<span class="ch-title">' +
+              chapters.entries.text[i] +
+              "</span>" +
+              '<span class="ch-time">' +
+              mejs.Utility.secondsToTimeCode(
+                chapters.entries.times[i].start,
+                t.options
+              ) +
+              "&ndash;" +
+              mejs.Utility.secondsToTimeCode(
+                chapters.entries.times[i].stop,
+                t.options
+              ) +
+              "</span>" +
+              "</div>" +
+              "</div>"
+          )
+        );
+        usedPercent += percent;
+      }
+
+      t.chapters.find("div.mejs-chapter").click(function() {
+        t.media.setCurrentTime(parseFloat($(this).attr("rel")));
+        if (t.media.paused) {
+          t.media.play();
+        }
+      });
+
+      t.chapters.show();
+    }
+  });
+
+  mejs.language = {
+    codes: {
+      af: "Afrikaans",
+      sq: "Albanian",
+      ar: "Arabic",
+      be: "Belarusian",
+      bg: "Bulgarian",
+      ca: "Catalan",
+      zh: "Chinese",
+      "zh-cn": "Chinese Simplified",
+      "zh-tw": "Chinese Traditional",
+      hr: "Croatian",
+      cs: "Czech",
+      da: "Danish",
+      nl: "Dutch",
+      en: "English",
+      et: "Estonian",
+      fl: "Filipino",
+      fi: "Finnish",
+      fr: "French",
+      gl: "Galician",
+      de: "German",
+      el: "Greek",
+      ht: "Haitian Creole",
+      iw: "Hebrew",
+      hi: "Hindi",
+      hu: "Hungarian",
+      is: "Icelandic",
+      id: "Indonesian",
+      ga: "Irish",
+      it: "Italian",
+      ja: "Japanese",
+      ko: "Korean",
+      lv: "Latvian",
+      lt: "Lithuanian",
+      mk: "Macedonian",
+      ms: "Malay",
+      mt: "Maltese",
+      no: "Norwegian",
+      fa: "Persian",
+      pl: "Polish",
+      pt: "Portuguese",
+      // 'pt-pt':'Portuguese (Portugal)',
+      ro: "Romanian",
+      ru: "Russian",
+      sr: "Serbian",
+      sk: "Slovak",
+      sl: "Slovenian",
+      es: "Spanish",
+      sw: "Swahili",
+      sv: "Swedish",
+      tl: "Tagalog",
+      th: "Thai",
+      tr: "Turkish",
+      uk: "Ukrainian",
+      vi: "Vietnamese",
+      cy: "Welsh",
+      yi: "Yiddish"
+    }
+  };
+
+  /*
 	Parses WebVTT format which should be formatted as
 	================================
 	WEBVTT
@@ -6407,279 +6612,373 @@ function constrainedSeekTo(player, media, targetTime) {
 
 	Adapted from: http://www.delphiki.com/html5/playr
 	*/
-	mejs.TrackFormatParser = {
-		webvtt: {
-			pattern_timecode: /^((?:[0-9]{1,2}:)?[0-9]{2}:[0-9]{2}([,.][0-9]{1,3})?) --\> ((?:[0-9]{1,2}:)?[0-9]{2}:[0-9]{2}([,.][0-9]{3})?)(.*)$/,
+  mejs.TrackFormatParser = {
+    webvtt: {
+      pattern_timecode: /^((?:[0-9]{1,2}:)?[0-9]{2}:[0-9]{2}([,.][0-9]{1,3})?) --\> ((?:[0-9]{1,2}:)?[0-9]{2}:[0-9]{2}([,.][0-9]{3})?)(.*)$/,
 
-			parse: function(trackText) {
-				var
-					i = 0,
-					lines = mejs.TrackFormatParser.split2(trackText, /\r?\n/),
-					entries = {text:[], times:[]},
-					timecode,
-					text,
-					identifier;
-				for(; i<lines.length; i++) {
-					timecode = this.pattern_timecode.exec(lines[i]);
+      parse: function(trackText) {
+        var i = 0,
+          lines = mejs.TrackFormatParser.split2(trackText, /\r?\n/),
+          entries = { text: [], times: [] },
+          timecode,
+          text,
+          identifier;
+        for (; i < lines.length; i++) {
+          timecode = this.pattern_timecode.exec(lines[i]);
 
-					if (timecode && i<lines.length) {
-						if ((i - 1) >= 0 && lines[i - 1] !== '') {
-							identifier = lines[i - 1];
-						}
-						i++;
-						// grab all the (possibly multi-line) text that follows
-						text = lines[i];
-						i++;
-						while(lines[i] !== '' && i<lines.length){
-							text = text + '\n' + lines[i];
-							i++;
-						}
-						text = $.trim(text).replace(/(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig, "<a href='$1' target='_blank'>$1</a>");
-						// Text is in a different array so I can use .join
-						entries.text.push(text);
-						entries.times.push(
-						{
-							identifier: identifier,
-							start: (mejs.Utility.convertSMPTEtoSeconds(timecode[1]) === 0) ? 0.200 : mejs.Utility.convertSMPTEtoSeconds(timecode[1]),
-							stop: mejs.Utility.convertSMPTEtoSeconds(timecode[3]),
-							settings: timecode[5]
-						});
-					}
-					identifier = '';
-				}
-				return entries;
-			}
-		},
-		split2: function (text, regex) {
-			// normal version for compliant browsers
-			// see below for IE fix
-			return text.split(regex);
-		}
-	};
+          if (timecode && i < lines.length) {
+            if (i - 1 >= 0 && lines[i - 1] !== "") {
+              identifier = lines[i - 1];
+            }
+            i++;
+            // grab all the (possibly multi-line) text that follows
+            text = lines[i];
+            i++;
+            while (lines[i] !== "" && i < lines.length) {
+              text = text + "\n" + lines[i];
+              i++;
+            }
+            text = $.trim(text).replace(
+              /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/gi,
+              "<a href='$1' target='_blank'>$1</a>"
+            );
+            // Text is in a different array so I can use .join
+            entries.text.push(text);
+            entries.times.push({
+              identifier: identifier,
+              start:
+                mejs.Utility.convertSMPTEtoSeconds(timecode[1]) === 0
+                  ? 0.2
+                  : mejs.Utility.convertSMPTEtoSeconds(timecode[1]),
+              stop: mejs.Utility.convertSMPTEtoSeconds(timecode[3]),
+              settings: timecode[5]
+            });
+          }
+          identifier = "";
+        }
+        return entries;
+      }
+    },
+    split2: function(text, regex) {
+      // normal version for compliant browsers
+      // see below for IE fix
+      return text.split(regex);
+    }
+  };
 
-	// test for browsers with bad String.split method.
-	if ('x\n\ny'.split(/\n/gi).length != 3) {
-		// add super slow IE8 and below version
-		mejs.TrackFormatParser.split2 = function(text, regex) {
-			var
-				parts = [],
-				chunk = '',
-				i;
+  // test for browsers with bad String.split method.
+  if ("x\n\ny".split(/\n/gi).length != 3) {
+    // add super slow IE8 and below version
+    mejs.TrackFormatParser.split2 = function(text, regex) {
+      var parts = [],
+        chunk = "",
+        i;
 
-			for (i=0; i<text.length; i++) {
-				chunk += text.substring(i,i+1);
-				if (regex.test(chunk)) {
-					parts.push(chunk.replace(regex, ''));
-					chunk = '';
-				}
-			}
-			parts.push(chunk);
-			return parts;
-		};
-	}
-
+      for (i = 0; i < text.length; i++) {
+        chunk += text.substring(i, i + 1);
+        if (regex.test(chunk)) {
+          parts.push(chunk.replace(regex, ""));
+          chunk = "";
+        }
+      }
+      parts.push(chunk);
+      return parts;
+    };
+  }
 })(mejs.$);
 
 // Source Chooser Plugin
 (function($) {
+  $.extend(mejs.MepDefaults, {
+    sourcechooserText: ""
+  });
 
-	$.extend(mejs.MepDefaults, {
-		sourcechooserText: ''
-	});
+  $.extend(MediaElementPlayer.prototype, {
+    sources: [],
 
-	$.extend(MediaElementPlayer.prototype, {
-		sources: [],
+    buildsourcechooser: function(player, controls, layers, media) {
+      var t = this,
+        sourceTitle = t.options.sourcechooserText
+          ? t.options.sourcechooserText
+          : mejs.i18n.t("mejs.source-chooser"),
+        hoverTimeout;
 
-		buildsourcechooser: function(player, controls, layers, media) {
+      player.sourcechooserButton = $(
+        '<div class="mejs-button mejs-sourcechooser-button">' +
+          '<button type="button" role="button" aria-haspopup="true" aria-controls="' +
+          t.id +
+          '" title="' +
+          sourceTitle +
+          '" aria-label="' +
+          sourceTitle +
+          '" aria-live="assertive"></button>' +
+          '<div class="mejs-sourcechooser-selector mejs-offscreen" role="menu" aria-expanded="false" aria-hidden="true">' +
+          "<ul>" +
+          "</ul>" +
+          "</div>" +
+          "</div>"
+      )
+        .appendTo(controls)
 
-			var
-				t = this,
-				sourceTitle = t.options.sourcechooserText ? t.options.sourcechooserText : mejs.i18n.t('mejs.source-chooser'),
-				hoverTimeout
-			;
+        // hover
+        .hover(
+          function() {
+            clearTimeout(hoverTimeout);
+            player.showSourcechooserSelector();
+          },
+          function() {
+            hoverTimeout = setTimeout(function() {
+              player.hideSourcechooserSelector();
+            }, t.options.menuTimeoutMouseLeave);
+          }
+        )
 
-			player.sourcechooserButton =
-				$('<div class="mejs-button mejs-sourcechooser-button">'+
-						'<button type="button" role="button" aria-haspopup="true" aria-controls="' + t.id + '" title="' + sourceTitle + '" aria-label="' + sourceTitle + '" aria-live="assertive"></button>'+
-						'<div class="mejs-sourcechooser-selector mejs-offscreen" role="menu" aria-expanded="false" aria-hidden="true">'+
-							'<ul>'+
-							'</ul>'+
-						'</div>'+
-					'</div>')
-					.appendTo(controls)
+        // keyboard menu activation
+        .on("keydown", function(e) {
+          var keyCode = e.keyCode;
+          if (e.target === $(this).find("button")[0]) e.stopPropagation();
 
-					// hover
-					.hover(function() {
-						clearTimeout(hoverTimeout);
-						player.showSourcechooserSelector();
-					}, function() {
-						hoverTimeout = setTimeout(function () {
-						player.hideSourcechooserSelector();
-						}, t.options.menuTimeoutMouseLeave);
-					})
+          switch (keyCode) {
+            case 32: // space
+              if (!mejs.MediaFeatures.isFirefox) {
+                // space sends the click event in Firefox
+                player.showSourcechooserSelector();
+              }
+              break;
+            case 38: // up arrow
+            case 13: // enter
+              player.showSourcechooserSelector();
+              break;
+            case 27: // esc
+              player.hideSourcechooserSelector();
+              $(this)
+                .find("button")
+                .focus();
+              break;
+            default:
+              return true;
+          }
+        })
 
-					// keyboard menu activation
-					.on('keydown', function (e) {
-						var keyCode = e.keyCode;
+        // close menu when tabbing away
+        .on(
+          "focusout",
+          mejs.Utility.debounce(function(e) {
+            // Safari triggers focusout multiple times
+            // Firefox does NOT support e.relatedTarget to see which element
+            // just lost focus, so wait to find the next focused element
+            setTimeout(function() {
+              var parent = $(document.activeElement).closest(
+                ".mejs-sourcechooser-selector"
+              );
+              if (!parent.length) {
+                // focus is outside the control; close menu
+                player.hideSourcechooserSelector();
+              }
+            }, 0);
+          }, 100)
+        )
 
-						switch (keyCode) {
-							case 32: // space
-								if (!mejs.MediaFeatures.isFirefox) { // space sends the click event in Firefox
-									player.showSourcechooserSelector();
-								}
-								$(this).find('.mejs-sourcechooser-selector')
-									.find('input[type=radio]:checked').first().focus();
-								break;
-							case 13: // enter
-								player.showSourcechooserSelector();
-								$(this).find('.mejs-sourcechooser-selector')
-									.find('input[type=radio]:checked').first().focus();
-								break;
-							case 27: // esc
-								player.hideSourcechooserSelector();
-								$(this).find('button').focus();
-								break;
-							default:
-								return true;
-								}
-							})
+        // handle clicks to the source radio buttons
+        .delegate("input[type=radio]", "click", function() {
+          // set aria states
+          $(this)
+            .attr("aria-selected", true)
+            .attr("checked", "checked");
+          $(this)
+            .closest(".mejs-sourcechooser-selector")
+            .find("input[type=radio]")
+            .not(this)
+            .attr("aria-selected", "false")
+            .removeAttr("checked");
 
-					// close menu when tabbing away
-					.on('focusout', mejs.Utility.debounce(function (e) { // Safari triggers focusout multiple times
-						// Firefox does NOT support e.relatedTarget to see which element
-						// just lost focus, so wait to find the next focused element
-						setTimeout(function () {
-							var parent = $(document.activeElement).closest('.mejs-sourcechooser-selector');
-							if (!parent.length) {
-								// focus is outside the control; close menu
-								player.hideSourcechooserSelector();
-							}
-						}, 0);
-					}, 100))
+          var src = this.value;
 
-					// handle clicks to the source radio buttons
-					.delegate('input[type=radio]', 'click', function() {
-						// set aria states
-						$(this).attr('aria-selected', true).attr('checked', 'checked');
-						$(this).closest('.mejs-sourcechooser-selector').find('input[type=radio]').not(this).attr('aria-selected', 'false').removeAttr('checked');
+          if (media.currentSrc != src) {
+            var currentTime = media.currentTime;
+            var paused = media.paused;
+            media.pause();
+            media.setSrc(src);
 
-						var src = this.value;
+            media.addEventListener(
+              "loadedmetadata",
+              function(e) {
+                media.currentTime = currentTime;
+              },
+              true
+            );
 
-						if (media.currentSrc != src) {
-							var currentTime = media.currentTime;
-							var paused = media.paused;
-							media.pause();
-							media.setSrc(src);
+            var canPlayAfterSourceSwitchHandler = function(e) {
+              if (!paused) {
+                media.play();
+              }
+              media.removeEventListener(
+                "canplay",
+                canPlayAfterSourceSwitchHandler,
+                true
+              );
+            };
+            media.addEventListener(
+              "canplay",
+              canPlayAfterSourceSwitchHandler,
+              true
+            );
+            media.load();
+          }
 
-							media.addEventListener('loadedmetadata', function(e) {
-								media.currentTime = currentTime;
-							}, true);
+          t.setSourcechooserAriaLabel(media);
+        })
 
-							var canPlayAfterSourceSwitchHandler = function(e) {
-								if (!paused) {
-									media.play();
-								}
-								media.removeEventListener("canplay", canPlayAfterSourceSwitchHandler, true);
-							};
-							media.addEventListener('canplay', canPlayAfterSourceSwitchHandler, true);
-							media.load();
-						}
+        // Handle click so that screen readers can toggle the menu
+        .delegate("button", "click", function(e) {
+          if (
+            $(this)
+              .siblings(".mejs-sourcechooser-selector")
+              .hasClass("mejs-offscreen")
+          ) {
+            player.showSourcechooserSelector();
+          } else {
+            player.hideSourcechooserSelector();
+          }
+        });
 
-						t.setSourcechooserAriaLabel(media);
-					})
+      // add to list
+      for (var i in this.node.children) {
+        var src = this.node.children[i];
+        if (
+          src.nodeName === "SOURCE" &&
+          (media.canPlayType(src.type) == "probably" ||
+            media.canPlayType(src.type) == "maybe")
+        ) {
+          t.sources.push(src);
+          player.addSourceButton(
+            src.src,
+            src.title,
+            src.type,
+            media.src == src.src
+          );
+        }
+      }
 
-					// Handle click so that screen readers can toggle the menu
-					.delegate('button', 'click', function (e) {
-						if ($(this).siblings('.mejs-sourcechooser-selector').hasClass('mejs-offscreen')) {
-							player.showSourcechooserSelector();
-							$(this).siblings('.mejs-sourcechooser-selector').find('input[type=radio]:checked').first().focus();
-						} else {
-							player.hideSourcechooserSelector();
-						}
-					});
+      t.setSourcechooserAriaLabel(media);
+    },
 
-			// add to list
-			for (var i in this.node.children) {
-				var src = this.node.children[i];
-				if (src.nodeName === 'SOURCE' && (media.canPlayType(src.type) == 'probably' || media.canPlayType(src.type) == 'maybe')) {
-					t.sources.push(src);
-					player.addSourceButton(src.src, src.title, src.type, media.src == src.src);
-				}
-			}
+    setSourcechooserAriaLabel: function(media) {
+      var label = this.options.sourcechooserText
+        ? this.options.sourcechooserText
+        : mejs.i18n.t("mejs.source-chooser");
+      var current = this.currentSource(media);
 
-			t.setSourcechooserAriaLabel(media);
-		},
+      if (current) {
+        label += ": " + current;
+      }
 
-		setSourcechooserAriaLabel: function(media) {
-			var label = this.options.sourcechooserText ? this.options.sourcechooserText : mejs.i18n.t('mejs.source-chooser');
-			var current = this.currentSource(media);
+      this.sourcechooserButton
+        .find("button")
+        .attr("aria-label", label)
+        .attr("title", label);
+    },
 
-			if (current) {
-				label += ': ' + current;
-			}
+    addSourceButton: function(src, label, type, isCurrent) {
+      var t = this;
+      if (label === "" || label == undefined) {
+        label = src;
+      }
+      type = type.split("/")[1];
 
-			this.sourcechooserButton.find('button')
-				.attr('aria-label', label)
-				.attr('title', label);
-		},
+      t.sourcechooserButton
+        .find("ul")
+        .append(
+          $(
+            "<li>" +
+              '<input type="radio" name="' +
+              t.id +
+              '_sourcechooser" id="' +
+              t.id +
+              "_sourcechooser_" +
+              label +
+              type +
+              '" role="menuitemradio" value="' +
+              src +
+              '" ' +
+              (isCurrent ? 'checked="checked"' : "") +
+              'aria-selected="' +
+              isCurrent +
+              '" aria-label="' +
+              label +
+              '" tabindex="-1" />' +
+              '<label for="' +
+              t.id +
+              "_sourcechooser_" +
+              label +
+              type +
+              '" aria-hidden="true">' +
+              label +
+              " (" +
+              type +
+              ")</label>" +
+              "</li>"
+          )
+        );
 
-		addSourceButton: function(src, label, type, isCurrent) {
-			var t = this;
-			if (label === '' || label == undefined) {
-				label = src;
-			}
-			type = type.split('/')[1];
+      t.adjustSourcechooserBox();
+    },
 
-			t.sourcechooserButton.find('ul').append(
-				$('<li>'+
-						'<input type="radio" name="' + t.id + '_sourcechooser" id="' + t.id + '_sourcechooser_' + label + type + '" role="menuitemradio" value="' + src + '" ' + (isCurrent ? 'checked="checked"' : '') + 'aria-selected="' + isCurrent + '" aria-label="' + label + '" tabindex="-1" />'+
-						'<label for="' + t.id + '_sourcechooser_' + label + type + '" aria-hidden="true">' + label + ' (' + type + ')</label>'+
-					'</li>')
-			);
+    currentSource: function(media) {
+      var current = this.sources.filter(function(src) {
+        return src.src == media.src;
+      })[0];
 
-			t.adjustSourcechooserBox();
+      if (current) {
+        return current.title || "";
+      }
 
-		},
+      return "";
+    },
 
-		currentSource: function(media) {
-			var current = this.sources.filter(function(src) {
-				return src.src == media.src;
-			})[0];
+    adjustSourcechooserBox: function() {
+      var t = this;
+      // adjust the size of the outer box
+      t.sourcechooserButton
+        .find(".mejs-sourcechooser-selector")
+        .height(
+          t.sourcechooserButton
+            .find(".mejs-sourcechooser-selector ul")
+            .outerHeight(true)
+        );
+    },
 
-			if (current) {
-				return current.title || '';
-			}
+    hideSourcechooserSelector: function() {
+      this.sourcechooserButton
+        .find(".mejs-sourcechooser-selector")
+        .addClass("mejs-offscreen")
+        .attr("aria-expanded", "false")
+        .attr("aria-hidden", "true")
+        .find("input[type=radio]") // make radios not focusable
+        .attr("tabindex", "-1");
+    },
 
-			return '';
-		},
-
-		adjustSourcechooserBox: function() {
-			var t = this;
-			// adjust the size of the outer box
-			t.sourcechooserButton.find('.mejs-sourcechooser-selector').height(
-				t.sourcechooserButton.find('.mejs-sourcechooser-selector ul').outerHeight(true)
-			);
-		},
-
-		hideSourcechooserSelector: function () {
-			this.sourcechooserButton.find('.mejs-sourcechooser-selector')
-				.addClass('mejs-offscreen')
-				.attr('aria-expanded', 'false')
-				.attr('aria-hidden', 'true')
-				.find('input[type=radio]') // make radios not focusable
-				.attr('tabindex', '-1');
-		},
-
-		showSourcechooserSelector: function () {
-			this.sourcechooserButton.find('.mejs-sourcechooser-selector')
-				.removeClass('mejs-offscreen')
-				.attr('aria-expanded', 'true')
-				.attr('aria-hidden', 'false')
-				.find('input[type=radio]')
-				.attr('tabindex', '0');
-		}
-	});
-
+    showSourcechooserSelector: function() {
+      if (
+        this.sourcechooserButton
+          .find(".mejs-sourcechooser-selector")
+          .hasClass("mejs-offscreen")
+      ) {
+        this.sourcechooserButton
+          .find(".mejs-sourcechooser-selector")
+          .removeClass("mejs-offscreen")
+          .attr("aria-expanded", "true")
+          .attr("aria-hidden", "false")
+          .find("input[type=radio]")
+          .attr("tabindex", "0");
+        this.sourcechooserButton
+          .find(".mejs-sourcechooser-selector")
+          .find("input[type=radio]:checked")
+          .first()
+          .focus();
+      }
+    }
+  });
 })(mejs.$);
 
 /*

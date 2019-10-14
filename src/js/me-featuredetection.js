@@ -46,21 +46,10 @@ mejs.MediaFeatures = {
 		}
 
 		t.supportsPointerEvents = (function() {
-			// TAKEN FROM MODERNIZR
-			var element = document.createElement('x'),
-				documentElement = document.documentElement,
-				getComputedStyle = window.getComputedStyle,
-				supports;
-			if(!('pointerEvents' in element.style)){
-				return false;
-			}
-			element.style.pointerEvents = 'auto';
-			element.style.pointerEvents = 'x';
-			documentElement.appendChild(element);
-			supports = getComputedStyle &&
-				getComputedStyle(element, '').pointerEvents === 'auto';
-			documentElement.removeChild(element);
-			return !!supports;
+			// TAKEN FROM MODERNIZR 3.6.0
+			var style = document.createElement('a').style;
+			style.cssText = 'pointer-events:auto';
+			return style.pointerEvents === 'auto';
 		})();
 
 
